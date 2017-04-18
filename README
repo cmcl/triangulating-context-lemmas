@@ -1,0 +1,15 @@
+Triangulating Context Lemmas
+=============================
+
+Agda formalisation to accompanying paper ``Triangulating Context Lemmas" by
+Craig McLaughlin, James McKinna and Ian Stark.
+
+Dependencies:
+  * Agda version 2.5.1
+  * Agda standard library v0.12
+
+NB: There is no correspondence between the lemma numbering in the paper and
+that in the formalisation, having been based on a previous write-up of the
+results. However, the main results (triangulation for big-step/frame stack)
+are at the bottom of the respective files (tri-big-step.agda/tri-frm-stk.agda)
+under the "Summary" heading.

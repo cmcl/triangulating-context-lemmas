@@ -394,29 +394,6 @@ lemma-2-20O-frm : ∀ {Γ} {τ} {M N : Trm τ Γ} → ciu-sim M N → log-frm-si
 lemma-2-20O-frm {Γ} {τ} {M} {N} sMN {ρM} {ρN} simρ =
   lemma-2-20-aux-frm {`trm} (sMN ρM) (log-frm-sim-refl N simρ)
 
--- Reminiscent of Howe's property: if e1 R^H e2 and e2 R e3 then e1 R^H e3.
-Howe-property : (f : CBV) → Set
-Howe-property f = ∀ {τ} {M N P} → log-frm-sim₀ M N → ciu-sim₀ N P →
-                  log-frm-sim₀ {f} {τ} M P
-howe-property : ∀ {f} → Howe-property f
-howe-property {f} = case f return Howe-property of
-  λ { `val →  prfV ; `trm → prfT  }
- where
-  prfV : Howe-property `val
-  prfT : Howe-property `trm
-
-  prfV {`b β} {`var ()}
-  prfV {`b β} {`b b} {`var ()}
-  prfV {`b β} {`b b} {`b b'} l (ciu-sim₀^V-b _) = l
-  prfV {σ `→ τ} {`var ()}
-  prfV {σ `→ τ} {M = `λ M} {`var ()}
-  prfV {σ `→ τ} {M = `λ M} {N = `λ N} sMN (ciu-sim₀^V-λ sNP) {U} {V} sUV =
-    prfT (sMN sUV) (sNP U)
-
-  prfT {τ} {M} {N} {P} sMN sNP {σ} {S} sST evSM with sMN sST evSM
-  ... | V , evSN , sUV with sNP evSN
-  ... | W , evTP , sVW = W , evTP , sim₀-trans {`val} sUV sVW
-
 {------------}
 {-- Summary -}
 {------------}
