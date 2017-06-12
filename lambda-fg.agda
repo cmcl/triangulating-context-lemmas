@@ -171,7 +171,7 @@ record _-Env {ℓ : Level} (Γ : Cx) (𝓥 : PreModel ℓ) (Δ : Cx) : Set ℓ
  where
   constructor mkEnv; field var : {σ : Ty} → Var σ Γ → 𝓥 σ Δ
 
-infix 5 _⊆_
+infix 6 _⊆_
 infixr 6 _⊨_
 
 _⊆_ : (Γ Δ : Cx) → Set
