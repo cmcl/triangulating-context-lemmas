@@ -227,7 +227,7 @@ lemma33 ρ ρ' (`var v) = PEq.refl
 lemma33 ρ ρ' (`b b)  = PEq.refl
 lemma33 ρ ρ' (`λ M)  = PEq.cong λλ (lemma33 (ext₀^Env ρ) (ext₀^Env ρ') M)
 lemma33 ρ ρ' (`val V) rewrite lemma33 ρ ρ' V = PEq.refl
-lemma33 ρ ρ'   (f `$ a) rewrite lemma33 ρ ρ' f | lemma33 ρ ρ' a = PEq.refl
+lemma33 ρ ρ' (f `$ a) rewrite lemma33 ρ ρ' f | lemma33 ρ ρ' a = PEq.refl
 lemma33 ρ ρ' (`if b l r) rewrite lemma33 ρ ρ' b | lemma33 ρ ρ' l |
                                  lemma33 ρ ρ' r = PEq.refl
 lemma33 ρ ρ'  (`let M N) rewrite lemma33 ρ ρ' M =
@@ -241,3 +241,9 @@ E ⟨ U /var₀⟩ = subst E (ι^Env `∙ U)
 lemma34 : ∀ {f} {Γ Δ} {σ τ} → (E : (σ ⊢ Exp {f} τ) Γ) → (ρ : Γ ⊨ Δ) → ∀ U →
  subst E (ρ `∙ U) ≡ subst E (ext₀^Env ρ) ⟨ U /var₀⟩
 lemma34 E ρ U = lemma33 (ι^Env `∙ U) (ext₀^Env ρ) E
+
+lemma34-Env₀ : ∀ {f}  {σ τ} → (E : (σ ⊢ Exp {f} τ) ε) → (ρ : Env₀ ε) →
+  ∀ U → subst E (ρ `∙ U) ≡ E ⟨ U /var₀⟩
+lemma34-Env₀ M ρ U
+  rewrite lemma34 M ρ U |
+          ι^Env-lemma-aux {ρ = ext₀^Env ρ} (ext₀^Env-ext₀ {ρ = ρ} (λ ())) M = PEq.refl

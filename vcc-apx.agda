@@ -58,7 +58,8 @@ _⟪_⟫ : ∀ {f} {Γ Δ} {σ τ}
 
 
 Ren₀ : ∀ {Γ} → ε ⊆ Γ
-var Ren₀ ()
+Ren₀ {ε} = refl^Var
+Ren₀ {Γ ∙ x} = trans^Var (Ren₀ {Γ}) weak
 
 Ren-ε : ∀ {Γ} {τ} {X : Set} → Γ ∙ τ ⊆ ε → X
 Ren-ε ρ with var ρ ze
@@ -70,8 +71,11 @@ var (boo ρ) v = su (var ρ v)
 bar : ∀ {Γ Δ} {τ} → Γ ⊨ Δ → Γ ⊨ Δ ∙ τ
 var (bar ρ) v = weak *-Var (var ρ v)
 
-foo : ∀ {Γ Δ} {τ} → Γ ∙ τ ⊨ Δ → Γ ⊨ Δ
-var (foo ρ) v = var ρ (su v)
+suc : ∀ {Γ Δ} {τ} → Γ ∙ τ ⊨ Δ → Γ ⊨ Δ
+var (suc ρ) v = var ρ (su v)
+
+zero : ∀ {Γ Δ} {τ} → Γ ∙ τ ⊨ Δ → Val τ Δ
+zero ρ = var ρ ze
 
 faa : ∀ {Γ Δ} {τ} → Δ ∙ τ ⊆ Γ → Δ ⊆ Γ
 var (faa ρ) v = var ρ (su v)
@@ -86,6 +90,64 @@ renC (F `$ A) ρ = (renC F ρ) `$ (renC A ρ)
 renC (`if B L R) ρ = `if (renC B ρ) (renC L ρ) (renC R ρ)
 renC (`let M N) ρ = `let (renC M ρ) (renC N (ext₀^Var ρ))
 
+ext₀^Var-ext₀ : ∀ {Γ} {σ} → {ρ : Γ ⊆ Γ} → (∀ {τ} v → var ρ {τ} v ≡ v) →
+ ∀ {τ} v → var (pop! {σ} {Γ} ρ) {τ} v ≡ v
+ext₀^Var-ext₀ {Γ} {σ} {ρ} eq =
+  [ P ][ PEq.refl ,,,  PEq.cong su ∘ eq ]
+ where P = λ {τ} v → var (pop! {σ} {Γ} ρ) {τ} v ≡ v
+
+-- ι^Env-lemma : ∀ {f} {Γ} {σ} → (E : Exp {f} σ Γ) → (ι^Env *-Val E) ≡ E
+-- ι^Env-lemma = ι^Env-lemma-aux {ρ = ι^Env} (λ v → PEq.refl)
+
+-- ι^Env₀-lemma : ∀ {f} {σ} → (ρ : Env₀ ε) (E : Exp₀ {f} σ) → (ρ *-Val E) ≡ E
+-- ι^Env₀-lemma ρ = ι^Env-lemma-aux {ρ = ρ} (λ ())
+ι^Var-lemma-aux : {Γ : Cx} {σ : Ty} {ρ : Γ ⊆ Γ}
+             (prf : {τ : Ty} (v : Var τ Γ) → var ρ {τ} v ≡ v) →
+             {cbv : CBV} (E : Exp {cbv} σ Γ) →
+             (ρ *-Var E) ≡ E
+ι^Var-lemma-aux prf  (`var v)
+ rewrite prf v             = PEq.refl
+ι^Var-lemma-aux prf   (`b b)    = PEq.refl
+ι^Var-lemma-aux prf   (`λ M)
+ rewrite ι^Var-lemma-aux (ext₀^Var-ext₀ prf) M    = PEq.refl
+ι^Var-lemma-aux prf  (`val V)
+ rewrite ι^Var-lemma-aux prf V  = PEq.refl
+ι^Var-lemma-aux prf  (F `$ A)
+ rewrite ι^Var-lemma-aux prf F | ι^Var-lemma-aux prf A = PEq.refl
+ι^Var-lemma-aux prf (`if B L R)
+  rewrite ι^Var-lemma-aux prf B | ι^Var-lemma-aux prf L |
+          ι^Var-lemma-aux prf R = PEq.refl
+ι^Var-lemma-aux prf  (`let M N)
+  rewrite ι^Var-lemma-aux prf M |
+          ι^Var-lemma-aux (ext₀^Var-ext₀ prf) N = PEq.refl
+
+ι^Var-lemma : ∀ {f} {Γ} {σ} → (E : Exp {f} σ Γ) → (ι^Var *-Var E) ≡ E
+ι^Var-lemma = ι^Var-lemma-aux {ρ = ι^Var} (λ v → PEq.refl)
+
+ι^Var₀-lemma : ∀ {f} {σ} → (ρ : ε ⊆ ε) (E : Exp₀ {f} σ) → (ρ *-Var E) ≡ E
+ι^Var₀-lemma ρ = ι^Var-lemma-aux {ρ = ρ} (λ ())
+
+-- Ren₀-lemma : ∀ {τ} → (M : Trm₀ τ) → (Ren₀ *-Var M) ≡ M
+-- Ren₀-lemma (`val x) = {!!}
+-- Ren₀-lemma (M `$ M₁) = {!!}
+-- Ren₀-lemma (`if M M₁ M₂) = {!!}
+-- Ren₀-lemma (`let M x) = {!!}
+
+
+open-closed-rho : ∀ {σ} (ρ : Env₀ (ε ∙ σ)) →
+ ∀ {τ} v → var ρ {τ} v ≡ var (ι^Env `∙ var ρ ze) v
+open-closed-rho ρ ze = PEq.refl
+open-closed-rho ρ (su ())
+
+subst-one : ∀ {σ τ} → (ρ : Env₀ (ε ∙ σ)) → (M : Trm τ (ε ∙ σ)) →
+  subst M ρ ≡ subst M (ι^Env `∙ var ρ ze)
+subst-one ρ M = subst-ext M {ρ = ρ} {ρ' = (ι^Env `∙ var ρ ze)} (open-closed-rho ρ)
+
+subst-suc : ∀ {Γ} {σ τ} → (ρ : Γ ∙ τ ⊨ ε) → (M : Trm σ (Γ ∙ τ)) →
+  subst M ρ ≡ subst (M ⟨ Ren₀ *-Var zero ρ /var₀⟩) (suc ρ)
+subst-suc {ε} ρ M rewrite subst-ext₀ (M ⟨ Ren₀ *-Var zero ρ /var₀⟩) (suc ρ) = {!!}
+subst-suc {Γ ∙ x} ρ M = {!!}
+
 extend-hole : ∀ {f} {Γ Δ} {σ τ ω} → Γ ∙ σ ⊨ Δ →
   VCC⟪ Γ ⊢ τ ⟫ {f} ω Δ → VCC⟪ Γ ∙ σ ⊢ τ ⟫ {f} ω Δ
 extend-hole ρ (`λ M) = `λ (extend-hole (bar ρ) M) --(weak *-Var )
@@ -99,20 +161,41 @@ extend-hole ρ (`let M N) = `let (extend-hole ρ M) (extend-hole (bar ρ) N)
 
 make : ∀ {Γ Δ} {τ} → Γ ⊨ Δ → VCC⟪ Γ ⊢ τ ⟫ {`trm} τ Δ
 make {ε} ρ = ⟪- Ren₀ -⟫
-make {Γ ∙ σ} {τ} ρ with make {Γ} {τ} (foo ρ)
+make {Γ ∙ σ} {τ} ρ with make {Γ} {τ} (suc ρ)
 ... | prf = extend-hole ρ prf
 
-Ren₀-lemma : ∀ {τ} → (M : Trm₀ τ) → (Ren₀ *-Var M) ≡ M
-Ren₀-lemma (`val x) = {!!}
-Ren₀-lemma (M `$ M₁) = {!!}
-Ren₀-lemma (`if M M₁ M₂) = {!!}
-Ren₀-lemma (`let M x) = {!!}
+extend-hole-make : ∀ {Γ} {σ τ} → (ρ : Γ ∙ σ ⊨ ε) → (M : Trm τ (Γ ∙ σ)) →
+  ∀ {U} → (extend-hole ρ (make (suc ρ)) ⟪ M ⟫) ⇓ U → subst M ρ ⇓ U
+extend-hole-make {ε} ρ M {U} (⇓app der) rewrite subst-one ρ M = {!!}
+--  rewrite ι^Var-lemma-aux pop!-refl M | ι^Var-lemma (var ρ ze)
+--  rewrite subst-ext M {ρ = ρ} {ρ' = (ι^Env `∙ var ρ ze)} (open-closed-rho ρ) = {!!}
+--extend-hole-make {ε} ρ M (⇓app der) | PEq.refl = {!!}
+--... | prf rewrite prf = {!!}= {!!}
+-- subst-ext M {ρ = ρ} {ρ' = (ι^Env `∙ var ρ ze)} (open-closed-rho ρ)
+extend-hole-make {Γ ∙ x} {σ} {τ} ρ M der with extend-hole-make {Γ} {x} {τ} (suc ρ)
+... | C = {!!}
 
-abs-app : ∀ {Γ} {τ} → (ρ : Γ ⊨ ε) → (M : Trm τ Γ) →
-  (make {Γ} ρ) ⟪ M ⟫ ≡ subst M ρ
-abs-app {ε} ρ M rewrite ι^Env₀-lemma ρ M = {!!}
-abs-app {Γ ∙ x} {τ} ρ M with make {Γ} {ε} {τ} (foo ρ)
+makeProp : ∀ {Γ} {τ} → (ρ : Γ ⊨ ε) → (M : Trm τ Γ) → ∀ {U} →
+  ((make ρ) ⟪ M ⟫) ⇓ U → subst M ρ ⇓ U
+makeProp {ε} ρ M der rewrite ι^Env₀-lemma ρ M | ι^Var-lemma M = der
+makeProp {Γ ∙ x} ρ M der with var ρ ze
+... | V with makeProp {Γ} (suc ρ) (M ⟨ Ren₀ *-Var V /var₀⟩)
 ... | prf = {!!}
+
+{-
+makeProp {ε} ρ M {U} {V} (⇓app der)
+  rewrite lemma34 M ρ U | ι^Var-lemma-aux pop!-refl M | ι^Var-lemma U |
+          ι^Env-lemma-aux {ρ = ext₀^Env ρ} (ext₀^Env-ext₀ {ρ = ρ} (λ ())) M = der
+makeProp {Γ ∙ x} {σ} {τ} ρ M der with makeProp {Γ} {x} {σ} (foo ρ)
+... | IH = {!!}
+-}
+--  |
+
+-- abs-app : ∀ {Γ} {τ} → (ρ : Γ ⊨ ε) → (M : Trm τ Γ) →
+--   (make {Γ} ρ) ⟪ M ⟫ ≡ subst M ρ
+-- abs-app {ε} ρ M rewrite ι^Env₀-lemma ρ M = {!!}
+-- abs-app {Γ ∙ x} {τ} ρ M with make {Γ} {ε} {τ} (foo ρ)
+-- ... | prf = {!!}
 
 -- a distinguished example: action of Val substitution on contexts
 substC : ∀ {f} {τ υ} {Γ Δ Ξ}
@@ -302,30 +385,6 @@ cxT (Γ ∙ τ) = Γ ∙ τ ∙ τ
 holeT : Cx → Ty → Ty
 holeT ε σ = σ
 holeT (Γ ∙ τ) σ = τ `→ σ
-
-ι^Var-lemma-aux : {Γ : Cx} {σ : Ty} {ρ : Γ ⊆ Γ}
-             (prf : {τ : Ty} (v : Var τ Γ) → var ρ {τ} v ≡ v) →
-             {cbv : CBV} (E : Exp {cbv} σ Γ) →
-             (ρ *-Var E) ≡ E
-ι^Var-lemma-aux prf  (`var v)
- rewrite prf v             = PEq.refl
-ι^Var-lemma-aux prf   (`b b)    = PEq.refl
-ι^Var-lemma-aux prf   (`λ M) = {!!}
--- rewrite ι^Var-lemma-aux (ext₀^Env-ext₀ prf) M    = PEq.refl
-ι^Var-lemma-aux prf  (`val V)
- rewrite ι^Var-lemma-aux prf V  = PEq.refl
-ι^Var-lemma-aux prf  (F `$ A)
- rewrite ι^Var-lemma-aux prf F | ι^Var-lemma-aux prf A = PEq.refl
-ι^Var-lemma-aux prf (`if B L R)
-  rewrite ι^Var-lemma-aux prf B | ι^Var-lemma-aux prf L |
-          ι^Var-lemma-aux prf R = PEq.refl
-ι^Var-lemma-aux prf  (`let M N) = {!!}
-
-ι^Var-lemma : ∀ {f} {Γ} {σ} → (E : Exp {f} σ Γ) → (ι^Var *-Var E) ≡ E
-ι^Var-lemma = ι^Var-lemma-aux {ρ = ι^Var} (λ v → PEq.refl)
-
-ι^Var₀-lemma : ∀ {f} {σ} → (ρ : ε ⊆ ε) (E : Exp₀ {f} σ) → (ρ *-Var E) ≡ E
-ι^Var₀-lemma ρ = ι^Var-lemma-aux {ρ = ρ} (λ ())
 
 app : ∀ {Γ Δ} {ω σ τ} → VCC⟪ Γ ∙ ω ⊢ τ ⟫ {`trm} σ (Δ ∙ ω) → Val ω Δ →
   VCC⟪ Γ ∙ ω ⊢ τ ⟫ {`trm} σ Δ
