@@ -61,6 +61,38 @@ Ren₀ : ∀ {Γ} → ε ⊆ Γ
 Ren₀ {ε} = refl^Var
 Ren₀ {Γ ∙ x} = trans^Var (Ren₀ {Γ}) weak
 
+ext₀^Var-ext₀ : ∀ {Γ} {σ} → {ρ : Γ ⊆ Γ} → (∀ {τ} v → var ρ {τ} v ≡ v) →
+ ∀ {τ} v → var (pop! {σ} {Γ} ρ) {τ} v ≡ v
+ext₀^Var-ext₀ {Γ} {σ} {ρ} eq =
+  [ P ][ PEq.refl ,,,  PEq.cong su ∘ eq ]
+ where P = λ {τ} v → var (pop! {σ} {Γ} ρ) {τ} v ≡ v
+
+ι^Var-lemma-aux : {Γ : Cx} {σ : Ty} {ρ : Γ ⊆ Γ}
+             (prf : {τ : Ty} (v : Var τ Γ) → var ρ {τ} v ≡ v) →
+             {cbv : CBV} (E : Exp {cbv} σ Γ) →
+             (ρ *-Var E) ≡ E
+ι^Var-lemma-aux prf  (`var v)
+ rewrite prf v             = PEq.refl
+ι^Var-lemma-aux prf   (`b b)    = PEq.refl
+ι^Var-lemma-aux prf   (`λ M)
+ rewrite ι^Var-lemma-aux (ext₀^Var-ext₀ prf) M    = PEq.refl
+ι^Var-lemma-aux prf  (`val V)
+ rewrite ι^Var-lemma-aux prf V  = PEq.refl
+ι^Var-lemma-aux prf  (F `$ A)
+ rewrite ι^Var-lemma-aux prf F | ι^Var-lemma-aux prf A = PEq.refl
+ι^Var-lemma-aux prf (`if B L R)
+  rewrite ι^Var-lemma-aux prf B | ι^Var-lemma-aux prf L |
+          ι^Var-lemma-aux prf R = PEq.refl
+ι^Var-lemma-aux prf  (`let M N)
+  rewrite ι^Var-lemma-aux prf M |
+          ι^Var-lemma-aux (ext₀^Var-ext₀ prf) N = PEq.refl
+
+ι^Var-lemma : ∀ {f} {Γ} {σ} → (E : Exp {f} σ Γ) → (ι^Var *-Var E) ≡ E
+ι^Var-lemma = ι^Var-lemma-aux {ρ = ι^Var} (λ v → PEq.refl)
+
+ι^Var₀-lemma : ∀ {f} {σ} → (ρ : ε ⊆ ε) (E : Exp₀ {f} σ) → (ρ *-Var E) ≡ E
+ι^Var₀-lemma ρ = ι^Var-lemma-aux {ρ = ρ} (λ ())
+
 Ren-ε : ∀ {Γ} {τ} {X : Set} → Γ ∙ τ ⊆ ε → X
 Ren-ε ρ with var ρ ze
 Ren-ε ρ | ()
@@ -90,42 +122,11 @@ renC (F `$ A) ρ = (renC F ρ) `$ (renC A ρ)
 renC (`if B L R) ρ = `if (renC B ρ) (renC L ρ) (renC R ρ)
 renC (`let M N) ρ = `let (renC M ρ) (renC N (ext₀^Var ρ))
 
-ext₀^Var-ext₀ : ∀ {Γ} {σ} → {ρ : Γ ⊆ Γ} → (∀ {τ} v → var ρ {τ} v ≡ v) →
- ∀ {τ} v → var (pop! {σ} {Γ} ρ) {τ} v ≡ v
-ext₀^Var-ext₀ {Γ} {σ} {ρ} eq =
-  [ P ][ PEq.refl ,,,  PEq.cong su ∘ eq ]
- where P = λ {τ} v → var (pop! {σ} {Γ} ρ) {τ} v ≡ v
-
 -- ι^Env-lemma : ∀ {f} {Γ} {σ} → (E : Exp {f} σ Γ) → (ι^Env *-Val E) ≡ E
 -- ι^Env-lemma = ι^Env-lemma-aux {ρ = ι^Env} (λ v → PEq.refl)
 
 -- ι^Env₀-lemma : ∀ {f} {σ} → (ρ : Env₀ ε) (E : Exp₀ {f} σ) → (ρ *-Val E) ≡ E
 -- ι^Env₀-lemma ρ = ι^Env-lemma-aux {ρ = ρ} (λ ())
-ι^Var-lemma-aux : {Γ : Cx} {σ : Ty} {ρ : Γ ⊆ Γ}
-             (prf : {τ : Ty} (v : Var τ Γ) → var ρ {τ} v ≡ v) →
-             {cbv : CBV} (E : Exp {cbv} σ Γ) →
-             (ρ *-Var E) ≡ E
-ι^Var-lemma-aux prf  (`var v)
- rewrite prf v             = PEq.refl
-ι^Var-lemma-aux prf   (`b b)    = PEq.refl
-ι^Var-lemma-aux prf   (`λ M)
- rewrite ι^Var-lemma-aux (ext₀^Var-ext₀ prf) M    = PEq.refl
-ι^Var-lemma-aux prf  (`val V)
- rewrite ι^Var-lemma-aux prf V  = PEq.refl
-ι^Var-lemma-aux prf  (F `$ A)
- rewrite ι^Var-lemma-aux prf F | ι^Var-lemma-aux prf A = PEq.refl
-ι^Var-lemma-aux prf (`if B L R)
-  rewrite ι^Var-lemma-aux prf B | ι^Var-lemma-aux prf L |
-          ι^Var-lemma-aux prf R = PEq.refl
-ι^Var-lemma-aux prf  (`let M N)
-  rewrite ι^Var-lemma-aux prf M |
-          ι^Var-lemma-aux (ext₀^Var-ext₀ prf) N = PEq.refl
-
-ι^Var-lemma : ∀ {f} {Γ} {σ} → (E : Exp {f} σ Γ) → (ι^Var *-Var E) ≡ E
-ι^Var-lemma = ι^Var-lemma-aux {ρ = ι^Var} (λ v → PEq.refl)
-
-ι^Var₀-lemma : ∀ {f} {σ} → (ρ : ε ⊆ ε) (E : Exp₀ {f} σ) → (ρ *-Var E) ≡ E
-ι^Var₀-lemma ρ = ι^Var-lemma-aux {ρ = ρ} (λ ())
 
 -- Ren₀-lemma : ∀ {τ} → (M : Trm₀ τ) → (Ren₀ *-Var M) ≡ M
 -- Ren₀-lemma (`val x) = {!!}
@@ -205,9 +206,13 @@ barC (F `$ A) = (barC F) `$ (barC A)
 barC (`if B L R) = `if (barC B) (barC L) (barC R)
 barC {σ = σ} (`let {ν} M N) = `let (barC M) (renC (barC N) swp)
 
+Ren₀-lemma : ∀ {f} {σ} → (E : Exp₀ {f} σ) → (Ren₀ *-Var E) ≡ E
+Ren₀-lemma E rewrite ι^Var-lemma E = PEq.refl
+
+--This is not provable! e.g. `exp E case is patently false.
 substC-Trm : ∀ {f} {Γ} {σ τ ω} → (C : VCC⟪ Γ ⊢ σ ⟫ {f} τ ε) →
   (M : Trm σ (Γ ∙ ω)) → (V : Val₀ ω) →
-  (barC C) ⟪ M ⟫VCC ⟨ V /var₀⟩ ≡ C ⟪ M ⟨ Ren₀ *-Var V /var₀⟩ ⟫VCC
+  (barC C) ⟪ M ⟫VCC ⟨ V /var₀⟩ ≡ C ⟪ M ⟨ (Ren₀ *-Var V) /var₀⟩ ⟫VCC
 substC-Trm (`λ N) M V = {!!}
 substC-Trm (`exp E) M V = {!!}
 substC-Trm ⟪- r -⟫ M V = {!!}
@@ -222,7 +227,7 @@ substC-Trm (`let N P) M V = {!!}
   (C ⟪ M ⟨ Ren₀ *-Var V /var₀⟩ ⟫VCC) ⇓ W
 λV-Cxt→ (`exp E) M V (⇓app der) = {!!}
 λV-Cxt→ ⟪- r -⟫ M V der = {!!}
-λV-Cxt→ (`val C) M V (⇓app der) rewrite substC-Trm C M V = der
+λV-Cxt→ (`val C) M V (⇓app der) = {!!}
 λV-Cxt→ (F `$ A) M V der = {!!}
 λV-Cxt→ (`if B L R) M V der = {!!}
 λV-Cxt→ (`let N P) M V der = {!!}
