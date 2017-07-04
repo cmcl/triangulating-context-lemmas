@@ -172,6 +172,8 @@ _:+:_ : Ty → Cx → Cx
 σ :+: ε = ε ∙ σ
 σ :+: (Γ ∙ τ) = (σ :+: Γ) ∙ τ
 
+
+
 data FCx : Cx → Set where
   FEmp : FCx ε
   FCons : (σ : Ty) → (Γ : Cx) → FCx (σ :+: Γ)
@@ -182,19 +184,42 @@ snoc (Γ ∙ σ) with snoc Γ
 snoc (.ε ∙ σ) | FEmp = FCons σ ε
 snoc (.(σ :+: Γ) ∙ τ) | FCons σ Γ = FCons σ (Γ ∙ τ)
 
-data BwdSub : Cx → Set where
-  BSEmp : BwdSub ε
-  BSCons : ∀ {Γ Δ} {σ} → Val σ Δ → Γ ⊨ Δ → BwdSub (σ :+: Γ)
+data BwdSub (Δ : Cx) : Cx → Set where
+  BSEmp : BwdSub Δ ε
+  BSCons : ∀ {Γ} {σ} → Val σ Δ → Γ ⊨ Δ → BwdSub Δ (σ :+: Γ)
 
-shift : ∀ {Γ Δ} → Γ ⊨ Δ → BwdSub Γ
+shift : ∀ {Γ Δ} → Γ ⊨ Δ → BwdSub Δ Γ
 shift {Γ} ρ with snoc Γ
 shift ρ | FEmp = BSEmp
-shift ρ | FCons σ Γ = {!!}
+shift ρ | FCons σ ε = BSCons {Γ = ε} (var ρ ze) (mkEnv (λ {σ₁} → λ ()))
+shift ρ | FCons σ (Γ ∙ τ) with shift {(σ :+: Γ)} (suc ρ)
+... | prf = {!!}
 
 swp : ∀ {Γ} {σ τ} → Γ ∙ σ ∙ τ ⊆ Γ ∙ τ ∙ σ
 var swp ze = su ze
 var swp (su ze) = ze
 var swp (su (su v)) = su (su v)
+
+up : ∀ {Γ} {σ} → Γ ⊆ σ :+: Γ
+var (up {ε}) ()
+var (up {Γ ∙ σ}) ze = ze
+var (up {Γ ∙ σ}) (su v) = su (var up v)
+
+-- perm : ∀ {Γ} {σ} → σ :+: Γ ⊆ Γ ∙ σ
+-- var perm = ?
+
+-- push! : ∀ {Γ Δ} {σ} → Γ ⊆ Δ → σ :+: Γ ⊆ σ :+: Δ
+-- push! ρ = {!!}
+
+-- barC : ∀ {f} {Γ Δ} {σ τ ω} → VCC⟪ Γ ⊢ ω ⟫ {f} τ Δ →
+--   VCC⟪ σ :+: Γ ⊢ ω ⟫ {f} τ (σ :+: Δ)
+-- barC {σ = σ} (`λ {ν} M) = `λ (barC M) --`λ (renC (barC M) swp)
+-- barC (`exp E) = `exp (up *-Var E)
+-- barC ⟪- r -⟫ = ⟪- push! r -⟫
+-- barC (`val C) = `val (barC C) --(barC C)
+-- barC (F `$ A) = (barC F) `$ (barC A)
+-- barC (`if B L R) = `if (barC B) (barC L) (barC R)
+-- barC {σ = σ} (`let {ν} M N) = `let (barC M) (barC N)
 
 barC : ∀ {f} {Γ Δ} {σ τ ω} → VCC⟪ Γ ⊢ ω ⟫ {f} τ Δ →
   VCC⟪ Γ ∙ σ ⊢ ω ⟫ {f} τ (Δ ∙ σ)
@@ -209,7 +234,31 @@ barC {σ = σ} (`let {ν} M N) = `let (barC M) (renC (barC N) swp)
 Ren₀-lemma : ∀ {f} {σ} → (E : Exp₀ {f} σ) → (Ren₀ *-Var E) ≡ E
 Ren₀-lemma E rewrite ι^Var-lemma E = PEq.refl
 
---This is not provable! e.g. `exp E case is patently false.
+--(ι^Env `∙ V)
+{-
+weak-sub : ∀ {f} {Γ} {σ τ} → (V : Val τ Γ) → (E : Exp {f} σ Γ) →
+  subst (weak *-Var E) (ι^Env `∙ V) ≡ E
+weak-sub V (`var v) = PEq.refl
+weak-sub V (`b b) = PEq.refl
+weak-sub V (`λ M) = {!!}
+weak-sub V (`val M) rewrite weak-sub V M = PEq.refl
+weak-sub V (F `$ A) rewrite weak-sub V F | weak-sub V A = PEq.refl
+weak-sub V (`if B L R)
+  rewrite weak-sub V B | weak-sub V L | weak-sub V R = PEq.refl
+weak-sub V (`let M N) rewrite weak-sub V M = {!!}
+-}
+
+weak-sub : ∀ {f} {Γ} {σ τ} → (V : Val τ Γ) → (E : Exp {f} σ Γ) →
+  (weak *-Var E) ⟨ V /var₀⟩ ≡ E
+weak-sub V (`var v) = PEq.refl
+weak-sub V (`b b) = PEq.refl
+weak-sub V (`λ M) = PEq.cong λλ {!!}
+weak-sub V (`val M) rewrite weak-sub V M = PEq.refl
+weak-sub V (F `$ A) rewrite weak-sub V F | weak-sub V A = PEq.refl
+weak-sub V (`if B L R)
+  rewrite weak-sub V B | weak-sub V L | weak-sub V R = PEq.refl
+weak-sub V (`let M N) rewrite weak-sub V M = {!!}
+
 substC-Trm : ∀ {f} {Γ} {σ τ ω} → (C : VCC⟪ Γ ⊢ σ ⟫ {f} τ ε) →
   (M : Trm σ (Γ ∙ ω)) → (V : Val₀ ω) →
   (barC C) ⟪ M ⟫VCC ⟨ V /var₀⟩ ≡ C ⟪ M ⟨ (Ren₀ *-Var V) /var₀⟩ ⟫VCC
