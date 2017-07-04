@@ -231,6 +231,33 @@ barC (F `$ A) = (barC F) `$ (barC A)
 barC (`if B L R) = `if (barC B) (barC L) (barC R)
 barC {σ = σ} (`let {ν} M N) = `let (barC M) (renC (barC N) swp)
 
+_==>_ : Cx → Ty → Ty
+ε ==> σ = σ
+(Γ ∙ τ) ==> σ = Γ ==> (τ `→ σ)
+
+VCCclosure : ∀ {Γ Δ} {σ τ} → VCC⟪ Γ ⊢ σ ⟫ {`trm} τ Δ →
+  VCC⟪ Γ ⊢ σ ⟫ {`trm} (Δ ==> τ) ε
+VCCclosure {Δ = ε} cxt = cxt
+VCCclosure {Δ = Δ ∙ τ} cxt = VCCclosure (`val (`λ cxt))
+
+VCC-Env : ∀ {σ} → (Γ : Cx) → VCC⟪ Γ ⊢ σ ⟫ {`trm} (Γ ==> σ) ε
+VCC-Env Γ = VCCclosure ⟪- refl^Var -⟫
+
+VCC-sub : ∀ {Γ Δ} {σ τ} → VCC⟪ Γ ⊢ σ ⟫ {`trm} (Δ ==> τ) ε → Δ ⊨ ε →
+  VCC⟪ Γ ⊢ σ ⟫ {`trm} τ ε
+VCC-sub {Δ = ε} cxt ρ = cxt
+VCC-sub {Δ = Δ ∙ ω} cxt ρ =
+ `let (VCC-sub cxt (suc ρ)) ((`exp (`var ze)) `$ (`exp (weak *-Var var ρ ze)))
+
+VCC-make : ∀ {Γ} {σ} → Γ ⊨ ε → VCC⟪ Γ ⊢ σ ⟫ {`trm} σ ε
+VCC-make {Γ} ρ = VCC-sub (VCC-Env Γ) ρ
+
+show-me : ∀ {Γ} {σ} {ρ : Γ ⊨ ε} {M : Trm σ Γ} {V} →
+  subst M ρ ⇓ V → ((VCC-make ρ) ⟪ M ⟫VCC) ⇓ V
+show-me {ε} {ρ = ρ} {M = M} der
+  rewrite ι^Env₀-lemma ρ M | ι^Var-lemma M = der
+show-me {Γ ∙ τ} der = {!!}
+
 Ren₀-lemma : ∀ {f} {σ} → (E : Exp₀ {f} σ) → (Ren₀ *-Var E) ≡ E
 Ren₀-lemma E rewrite ι^Var-lemma E = PEq.refl
 
