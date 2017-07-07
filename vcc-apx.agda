@@ -146,89 +146,36 @@ subst-equiv {Γ ∙ τ} ρ M
   rewrite subst-equiv (suc ρ) (M ⟨ Ren₀ *-Var zero ρ /var₀⟩) | subst-suc ρ M
   = subst-ext M (cons-rho ρ)
 
-extend-hole : ∀ {f} {Γ Δ} {σ τ ω} → Γ ∙ σ ⊨ Δ →
-  VCC⟪ Γ ⊢ τ ⟫ {f} ω Δ → VCC⟪ Γ ∙ σ ⊢ τ ⟫ {f} ω Δ
-extend-hole ρ (`λ M) = `λ (extend-hole (bar ρ) M) --(weak *-Var )
-extend-hole ρ (`exp E) = `exp E
-extend-hole ρ ⟪- r -⟫ = `λ ⟪- pop! r -⟫ `$ `exp (var ρ ze)
-extend-hole ρ (`val M) = `val (extend-hole ρ M)
-extend-hole ρ (F `$ A) = extend-hole ρ F `$ extend-hole ρ A
-extend-hole ρ (`if B L R) =
-  `if (extend-hole ρ B) (extend-hole ρ L) (extend-hole ρ R)
-extend-hole ρ (`let M N) = `let (extend-hole ρ M) (extend-hole (bar ρ) N)
+βVΓ : ∀ {Γ} {σ} → (ρ : Γ ⊨ ε) → (M : Trm σ Γ) → Trm₀ σ
+βVΓ {ε} ρ M = M
+βVΓ {Γ ∙ τ} ρ M = βVΓ (suc ρ) ((`λ M) `$ (Ren₀ *-Var zero ρ))
 
-_:+:_ : Ty → Cx → Cx
-σ :+: ε = ε ∙ σ
-σ :+: (Γ ∙ τ) = (σ :+: Γ) ∙ τ
+data _→βV_ : GRel₀^T where
+  →βV-refl : {σ : Ty} {M : Trm₀ σ} → M →βV M
+{-
+  →βV-beta : {σ τ : Ty} {M : (σ ⊢ Trm τ) _} {V : _} →
+            (βV M V) →βV (M ⟨ V /var₀⟩)
+  →βV-trans : {σ τ : Ty} {M N P : Trm₀ τ} → M →βV N → N →βV P → M →βV P
+-}
+  →βV-step : {σ τ : Ty} {M : Trm₀ τ} {N : (σ ⊢ Trm τ) _} {V : _} →
+    M →βV (`λ N `$ V) → M →βV (N ⟨ V /var₀⟩)
 
-data FCx : Cx → Set where
-  FEmp : FCx ε
-  FCons : (σ : Ty) → (Γ : Cx) → FCx (σ :+: Γ)
+massive : ∀ {Γ} {σ τ} (ρ : Γ ⊨ ε) → (M : Trm σ (Γ ∙ τ)) → (V : Val₀ τ) →
+  subst M (ext₀^Env ρ) ⟨ subst (Ren₀ *-Var V) ρ /var₀⟩ ≡ subst M (ρ `∙ V)
+massive ρ M V = {!!}
 
-snoc : (Γ : Cx) → FCx Γ
-snoc ε = FEmp
-snoc (Γ ∙ σ) with snoc Γ
-snoc (.ε ∙ σ) | FEmp = FCons σ ε
-snoc (.(σ :+: Γ) ∙ τ) | FCons σ Γ = FCons σ (Γ ∙ τ)
+betaV-Trm : ∀ {Γ} {σ} → (ρ : Γ ⊨ ε) → (M : Trm σ Γ) → βVΓ ρ M →βV subst M ρ
+betaV-Trm   {ε}   ρ M rewrite PEq.sym (subst-equiv ρ M) = →βV-refl
+betaV-Trm {Γ ∙ τ} ρ M with betaV-Trm (suc ρ) (βV M (Ren₀ *-Var zero ρ))
+... | ih rewrite PEq.sym (subst-equiv ρ M) |
+                 subst-equiv (suc ρ) (M ⟨ Ren₀ *-Var zero ρ /var₀⟩) = {!!}
+{-
+betaV-Trm {Γ ∙ τ} ρ M with betaV-Trm (suc ρ) (`λ M `$ (Ren₀ *-Var zero ρ))
+... | ih = →βV-step {V = {!!}} {!ih!} -- rewrite massive (suc ρ) M (zero ρ)
+-}
 
-data BwdSub (Δ : Cx) : Cx → Set where
-  BSEmp : BwdSub Δ ε
-  BSCons : ∀ {Γ} {σ} → Val σ Δ → Γ ⊨ Δ → BwdSub Δ (σ :+: Γ)
-
-shift : ∀ {Γ Δ} → Γ ⊨ Δ → BwdSub Δ Γ
-shift {Γ} ρ with snoc Γ
-shift ρ | FEmp = BSEmp
-shift ρ | FCons σ ε = BSCons {Γ = ε} (var ρ ze) (mkEnv (λ {σ₁} → λ ()))
-shift ρ | FCons σ (Γ ∙ τ) with shift {(σ :+: Γ)} (suc ρ)
-... | prf = {!!}
-
-swp : ∀ {Γ} {σ τ} → Γ ∙ σ ∙ τ ⊆ Γ ∙ τ ∙ σ
-var swp ze = su ze
-var swp (su ze) = ze
-var swp (su (su v)) = su (su v)
-
-up : ∀ {Γ} {σ} → Γ ⊆ σ :+: Γ
-var (up {ε}) ()
-var (up {Γ ∙ σ}) ze = ze
-var (up {Γ ∙ σ}) (su v) = su (var up v)
-
--- perm : ∀ {Γ} {σ} → σ :+: Γ ⊆ Γ ∙ σ
--- var perm = ?
-
--- push! : ∀ {Γ Δ} {σ} → Γ ⊆ Δ → σ :+: Γ ⊆ σ :+: Δ
--- push! ρ = {!!}
-
--- barC : ∀ {f} {Γ Δ} {σ τ ω} → VCC⟪ Γ ⊢ ω ⟫ {f} τ Δ →
---   VCC⟪ σ :+: Γ ⊢ ω ⟫ {f} τ (σ :+: Δ)
--- barC {σ = σ} (`λ {ν} M) = `λ (barC M) --`λ (renC (barC M) swp)
--- barC (`exp E) = `exp (up *-Var E)
--- barC ⟪- r -⟫ = ⟪- push! r -⟫
--- barC (`val C) = `val (barC C) --(barC C)
--- barC (F `$ A) = (barC F) `$ (barC A)
--- barC (`if B L R) = `if (barC B) (barC L) (barC R)
--- barC {σ = σ} (`let {ν} M N) = `let (barC M) (barC N)
-
-barC : ∀ {f} {Γ Δ} {σ τ ω} → VCC⟪ Γ ⊢ ω ⟫ {f} τ Δ →
-  VCC⟪ Γ ∙ σ ⊢ ω ⟫ {f} τ (Δ ∙ σ)
-barC {σ = σ} (`λ {ν} M) = `λ (renC (barC M) swp)
-barC (`exp E) = `exp (weak *-Var E)
-barC ⟪- r -⟫ = ⟪- pop! r -⟫
-barC (`val C) = `val (barC C)
-barC (F `$ A) = (barC F) `$ (barC A)
-barC (`if B L R) = `if (barC B) (barC L) (barC R)
-barC {σ = σ} (`let {ν} M N) = `let (barC M) (renC (barC N) swp)
-
-_==>_ : Cx → Ty → Ty
-ε ==> σ = σ
-(Γ ∙ τ) ==> σ = Γ ==> (τ `→ σ)
-
-VCCclosure : ∀ {Γ} {σ τ} → (Δ : Cx) → VCC⟪ Γ ⊢ σ ⟫ {`trm} τ Δ →
-  VCC⟪ Γ ⊢ σ ⟫ {`trm} (Δ ==> τ) ε
-VCCclosure ε cxt = cxt
-VCCclosure (Δ ∙ τ) cxt = VCCclosure Δ (`val (`λ cxt))
-
-VCC-Env : ∀ {σ} → (Γ : Cx) → VCC⟪ Γ ⊢ σ ⟫ {`trm} (Γ ==> σ) ε
-VCC-Env Γ = VCCclosure Γ ⟪- refl^Var -⟫
+  -- rewrite PEq.sym (subst-equiv ρ M) |
+  --         subst-equiv (suc ρ) (M ⟨ Ren₀ *-Var zero ρ /var₀⟩) = {!!}
 
 VCC-sub : ∀ {Γ Δ} {σ τ} → VCC⟪ Γ ⊢ σ ⟫ {`trm} τ Δ → Δ ⊨ ε →
   VCC⟪ Γ ⊢ σ ⟫ {`trm} τ ε
@@ -236,15 +183,14 @@ VCC-sub {Δ = ε} cxt ρ = cxt
 VCC-sub {Δ = Δ ∙ ω} cxt ρ =
   VCC-sub (`λ cxt `$ (`exp (Ren₀ *-Var (var ρ ze)))) (suc ρ)
 
-βVΓ : ∀ {Γ} {σ} → (ρ : Γ ⊨ ε) → (M : Trm σ Γ) → Trm₀ σ
-βVΓ {ε} ρ M = M
-βVΓ {Γ ∙ τ} ρ M = βVΓ (suc ρ) ((`λ M) `$ (Ren₀ *-Var zero ρ))
-
-VCC-betaV : ∀ {Γ} {σ τ} →
-  (ρ : Γ ⊨ ε) → (M : Trm σ Γ) → (C : VCC⟪ Γ ⊢ σ ⟫ τ Γ) →
+VCC-betaV : ∀ {Γ Δ} {σ τ} →
+  (ρ : Δ ⊨ ε) → (M : Trm σ Γ) → (C : VCC⟪ Γ ⊢ σ ⟫ τ Δ) →
   (VCC-sub C ρ) ⟪ M ⟫VCC ≡ βVΓ ρ (C ⟪ M ⟫VCC)
-VCC-betaV {ε} ρ M C = PEq.refl
-VCC-betaV {Γ ∙ τ} ρ M C = {!VCC-betaV (suc ρ) ? (`λ C `$ `exp (Ren₀ *-Var zero ρ))!}
+VCC-betaV {Δ = ε} ρ M C = PEq.refl
+VCC-betaV {Δ = Δ ∙ τ}  ρ M C =
+  VCC-betaV (suc ρ) M ((`λ C) `$ (`exp (Ren₀ *-Var (zero ρ))))
+--VCC-betaV {ε} ρ M C = PEq.refl
+--VCC-betaV {Γ ∙ τ} ρ M C = {!VCC-betaV (suc ρ) (`λ !}
 
 VCC-make : ∀ {Γ} {σ} → Γ ⊨ ε → VCC⟪ Γ ⊢ σ ⟫ {`trm} σ ε
 VCC-make {Γ} ρ = VCC-sub {Γ} ⟪- refl^Var -⟫ ρ -- (VCC-Env Γ) ?
@@ -257,6 +203,25 @@ show-me {Γ ∙ τ} {ρ = ρ} {M = M} der = {!!}
 Ren₀-lemma : ∀ {f} {σ} → (E : Exp₀ {f} σ) → (Ren₀ *-Var E) ≡ E
 Ren₀-lemma E rewrite ι^Var-lemma E = PEq.refl
 
+-- composition of valuations: ren-sub fusion
+_*-RenSub_ : ∀ {Γ Δ Ξ} → (ρ : Δ ⊆ Ξ) → (ρ' : Γ ⊨ Δ) → Γ ⊨ Ξ
+ρ *-RenSub ρ' = map-Env (ρ *-Var_) ρ'
+
+lemma32 : ∀ {f} {Γ Δ Ξ} {σ} → (ρ : Δ ⊆ Ξ) → (ρ' : Γ ⊨ Δ) → (E : Exp {f} σ Γ) →
+ ((ρ *-RenSub ρ') *-Val E) ≡ (ρ *-Var (ρ' *-Val E))
+lemma32 ρ ρ' (`var v) = PEq.refl
+lemma32 ρ ρ' (`b b)  = PEq.refl
+lemma32 ρ ρ' (`λ M)  = PEq.cong λλ (lemma32 (ext₀^Var ρ) (ext₀^Env ρ') M)
+lemma32 ρ ρ' (`val V) rewrite lemma32 ρ ρ' V = PEq.refl
+lemma32 ρ ρ' (f `$ a) rewrite lemma32 ρ ρ' f | lemma32 ρ ρ' a = PEq.refl
+lemma32 ρ ρ' (`if b l r) rewrite lemma32 ρ ρ' b | lemma32 ρ ρ' l |
+                                 lemma32 ρ ρ' r = PEq.refl
+lemma32 ρ ρ'  (`let M N) rewrite lemma32 ρ ρ' M =
+  PEq.cong (`let _) (lemma32 (ext₀^Var ρ) (ext₀^Env ρ') N)
+
+weak-sub : ∀ {f} {Γ} {σ τ} → (V : Val τ Γ) → (E : Exp {f} σ Γ) →
+  subst (weak *-Var E) (ι^Env `∙ V) ≡ E
+weak-sub V E rewrite lemma32 {!!} {!!} E = {!!} -- PEq.sym (ι^Env-lemma E)
 --(ι^Env `∙ V)
 {-
 weak-sub : ∀ {f} {Γ} {σ τ} → (V : Val τ Γ) → (E : Exp {f} σ Γ) →
@@ -271,162 +236,35 @@ weak-sub V (`if B L R)
 weak-sub V (`let M N) rewrite weak-sub V M = {!!}
 -}
 
-weak-sub : ∀ {f} {Γ} {σ τ} → (V : Val τ Γ) → (E : Exp {f} σ Γ) →
-  (weak *-Var E) ⟨ V /var₀⟩ ≡ E
-weak-sub V (`var v) = PEq.refl
-weak-sub V (`b b) = PEq.refl
-weak-sub V (`λ M) = PEq.cong λλ {!!}
-weak-sub V (`val M) rewrite weak-sub V M = PEq.refl
-weak-sub V (F `$ A) rewrite weak-sub V F | weak-sub V A = PEq.refl
-weak-sub V (`if B L R)
-  rewrite weak-sub V B | weak-sub V L | weak-sub V R = PEq.refl
-weak-sub V (`let M N) rewrite weak-sub V M = {!!}
+_,,_ : Cx → Cx → Cx
+Γ ,, ε = Γ
+Γ ,, (Δ ∙ τ) = (Γ ,, Δ) ∙ τ
 
-substC-Trm : ∀ {f} {Γ} {σ τ ω} → (C : VCC⟪ Γ ⊢ σ ⟫ {f} τ ε) →
-  (M : Trm σ (Γ ∙ ω)) → (V : Val₀ ω) →
-  (barC C) ⟪ M ⟫VCC ⟨ V /var₀⟩ ≡ C ⟪ M ⟨ (Ren₀ *-Var V) /var₀⟩ ⟫VCC
-substC-Trm (`λ N) M V = {!!}
-substC-Trm (`exp E) M V = {!!}
-substC-Trm ⟪- r -⟫ M V = {!!}
-substC-Trm (`val C) M V = {!!}
-substC-Trm (F `$ A) M V = {!!}
-substC-Trm (`if B L R) M V = {!!}
-substC-Trm (`let N P) M V = {!!}
+pad-right : ∀ {Γ Δ} → Γ ⊆ Γ ,, Δ
+var pad-right v = {!!}
 
-λV-Cxt→ : ∀ {Γ} {σ τ ω} {W} → (C : VCC⟪ Γ ⊢ σ ⟫ {`trm} τ ε) →
-  (M : Trm σ (Γ ∙ ω)) → (V : Val₀ ω) →
-  (((`λ (barC C)) `$ (`exp V)) ⟪ M ⟫VCC) ⇓ W →
-  (C ⟪ M ⟨ Ren₀ *-Var V /var₀⟩ ⟫VCC) ⇓ W
-λV-Cxt→ (`exp E) M V (⇓app der) = {!!}
-λV-Cxt→ ⟪- r -⟫ M V der = {!!}
-λV-Cxt→ (`val C) M V (⇓app der) = {!!}
-λV-Cxt→ (F `$ A) M V der = {!!}
-λV-Cxt→ (`if B L R) M V der = {!!}
-λV-Cxt→ (`let N P) M V der = {!!}
+pad-left : ∀ {Γ Δ} → Δ ⊆ Γ ,, Δ
+var pad-left v = {!!}
 
-make-aux : ∀ {Γ Δ} {τ} → Γ ⊨ Δ → VCC⟪ Γ ⊢ τ ⟫ {`trm} τ Δ →
-  VCC⟪ Γ ⊢ τ ⟫ {`trm} τ Δ
-make-aux {ε} ρ C = C
-make-aux {Γ ∙ x} ρV C = {!!}
-  where ρ = suc ρV
-        V = var ρV ze
+push : ∀ {Γ Δ Ξ} → Δ ⊨ Ξ → Δ ,, Γ ⊨ Ξ ,, Γ
+var (push {ε} ρ) v = var ρ v
+var (push {Γ ∙ τ} ρ) ze = `var ze
+var (push {Γ ∙ τ} ρ) (su v) = weak *-Var (var (push {Γ} ρ) v)
 
-make : ∀ {Γ Δ} {τ} → Γ ⊨ Δ → VCC⟪ Γ ⊢ τ ⟫ {`trm} τ Δ
-make {ε} ρ = ⟪- Ren₀ -⟫
-make {Γ ∙ σ} {τ} ρ with make {Γ} {τ} (suc ρ)
-... | prf = extend-hole ρ prf
-
--- extend-hole-make : ∀ {Γ} {σ τ} → (ρ : Γ ∙ σ ⊨ ε) → (M : Trm τ (Γ ∙ σ)) →
---   ∀ {U} → (extend-hole ρ (make (suc ρ)) ⟪ M ⟫) ⇓ U → subst M ρ ⇓ U
--- extend-hole-make {ε} ρ M {U} (⇓app der) rewrite subst-one ρ M = {!!}
---  rewrite ι^Var-lemma-aux pop!-refl M | ι^Var-lemma (var ρ ze)
---  rewrite subst-ext M {ρ = ρ} {ρ' = (ι^Env `∙ var ρ ze)} (open-closed-rho ρ) = {!!}
---extend-hole-make {ε} ρ M (⇓app der) | PEq.refl = {!!}
---... | prf rewrite prf = {!!}= {!!}
--- subst-ext M {ρ = ρ} {ρ' = (ι^Env `∙ var ρ ze)} (open-closed-rho ρ)
--- extend-hole-make {Γ ∙ x} {σ} {τ} ρ M der with extend-hole-make {Γ} {x} {τ} (suc ρ)
--- ... | C = {!!}
-
-makeProp : ∀ {Γ} {τ} → (ρ : Γ ⊨ ε) → (M : Trm τ Γ) → ∀ {U} →
-  ((make ρ) ⟪ M ⟫VCC) ⇓ U → subst M ρ ⇓ U
-makeProp {ε} ρ M der rewrite ι^Env₀-lemma ρ M | ι^Var-lemma M = der
-makeProp {Γ ∙ x} ρ M der with var ρ ze
-... | V with makeProp {Γ} (suc ρ) (M ⟨ Ren₀ *-Var V /var₀⟩)
-... | prf = {!!}
-
+-- var (push {Δ = ε} {Ξ} ρ) v = `var v
+-- var (push {Δ = Δ ∙ τ} ρ) ze = pad-left *-Var (var ρ ze)
+-- var (push {Δ = Δ ∙ σ} ρ) (su v) = var (push (suc ρ)) v
 {-
-makeProp {ε} ρ M {U} {V} (⇓app der)
-  rewrite lemma34 M ρ U | ι^Var-lemma-aux pop!-refl M | ι^Var-lemma U |
-          ι^Env-lemma-aux {ρ = ext₀^Env ρ} (ext₀^Env-ext₀ {ρ = ρ} (λ ())) M = der
-makeProp {Γ ∙ x} {σ} {τ} ρ M der with makeProp {Γ} {x} {σ} (foo ρ)
-... | IH = {!!}
--}
---  |
+push-id : ∀ {Γ Δ Ξ} {σ} {v : Var σ Γ} (ρ : Δ ⊨ Ξ) →
+  var (push {Γ} ρ) v ≡ `var v
+push-id ρ = {!!}
 
--- abs-app : ∀ {Γ} {τ} → (ρ : Γ ⊨ ε) → (M : Trm τ Γ) →
---   (make {Γ} ρ) ⟪ M ⟫ ≡ subst M ρ
--- abs-app {ε} ρ M rewrite ι^Env₀-lemma ρ M = {!!}
--- abs-app {Γ ∙ x} {τ} ρ M with make {Γ} {ε} {τ} (foo ρ)
--- ... | prf = {!!}
-
--- a distinguished example: action of Val substitution on contexts
-substC-VCC : ∀ {f} {τ υ} {Γ Δ Ξ}
-         (P : VCC⟪ Γ ⊢ τ ⟫ {f} υ Δ) → (ρ : Δ ⊨ Ξ) → VCC⟪ Γ ⊢ τ ⟫ {f} υ Ξ
-
-substC-VCC (`exp E)      = `exp ∘ subst E
-substC-VCC  (`λ M)       = `λ ∘ (substC-VCC M) ∘ ext₀^Env
-
-substC-VCC ⟪- r -⟫    ρ = make (r *-Env ρ)
-
-substC-VCC (`val P)      = `val ∘ (substC-VCC P)
-substC-VCC (F `$ A)    ρ = (substC-VCC F ρ) `$ (substC-VCC A ρ)
-substC-VCC (`if B L R) ρ =
-  `if (substC-VCC B ρ) (substC-VCC L ρ) (substC-VCC R ρ)
-substC-VCC (`let P R)  ρ = `let (substC-VCC P ρ) (substC-VCC R (ext₀^Env ρ))
-
-cxt-vcc : ∀ {f} {Γ Δ} {τ σ} → Cxt⟪ Γ ⊢ τ ⟫ {f} σ Δ → VCC⟪ Γ ⊢ τ ⟫ {f} σ Δ
-cxt-vcc (`λ M) = `λ (cxt-vcc M)
-cxt-vcc (`exp E) = `exp E
-cxt-vcc ⟪- ρ -⟫ = substC-VCC ⟪- ι^Var -⟫ ρ
-cxt-vcc (`val M) = `val (cxt-vcc M)
-cxt-vcc (F `$ A) = (cxt-vcc F) `$ (cxt-vcc A)
-cxt-vcc (`if B L R) = `if (cxt-vcc B) (cxt-vcc L) (cxt-vcc R)
-cxt-vcc (`let M N) = `let (cxt-vcc M) (cxt-vcc N)
-
-vcc-cxt : ∀ {f} {Γ Δ} {τ σ} → VCC⟪ Γ ⊢ τ ⟫ {f} σ Δ → Cxt⟪ Γ ⊢ τ ⟫ {f} σ Δ
-vcc-cxt (`λ M) = `λ (vcc-cxt M)
-vcc-cxt (`exp E) = `exp E
-vcc-cxt ⟪- r -⟫ = ⟪- map-Env `var r -⟫
-vcc-cxt (`val M) = `val (vcc-cxt M)
-vcc-cxt (F `$ A) = (vcc-cxt F) `$ (vcc-cxt A)
-vcc-cxt (`if B L R) = `if (vcc-cxt B) (vcc-cxt L) (vcc-cxt R)
-vcc-cxt (`let M N) = `let (vcc-cxt M) (vcc-cxt N)
-
-
--- commutation between substitution and instantiation
-
-_substC-VCC⟪_⟫_ : ∀ {f} {τ υ} {Γ Δ Ξ}
-                (C : VCC⟪ Γ ⊢ τ ⟫ {f} υ Δ) (T : Trm τ Γ) (ρ : Δ ⊨ Ξ) →
- substC-VCC C ρ ⟪ T ⟫VCC ≡ subst (C ⟪ T ⟫VCC) ρ
-
-`exp E       substC-VCC⟪ T ⟫ ρ = PEq.refl
-`λ M         substC-VCC⟪ T ⟫ ρ -- = PEq.cong `λ (M substC-VCC⟪ T ⟫ (ext₀^Env ρ))
- rewrite M substC-VCC⟪ T ⟫ (ext₀^Env ρ)
-                           = PEq.refl
-
-⟪- r -⟫     substC-VCC⟪ T ⟫ ρ = {!!}
--- rewrite lemma33 ρ ρ' T    = PEq.refl
-`val C         substC-VCC⟪ T ⟫ ρ
- rewrite C substC-VCC⟪ T ⟫ ρ   = PEq.refl
-(F `$ A)     substC-VCC⟪ T ⟫ ρ
- rewrite F substC-VCC⟪ T ⟫ ρ | A substC-VCC⟪ T ⟫ ρ
-                           = PEq.refl
-`if B L R    substC-VCC⟪ T ⟫ ρ
- rewrite B substC-VCC⟪ T ⟫ ρ | L substC-VCC⟪ T ⟫ ρ | R substC-VCC⟪ T ⟫ ρ
-                           = PEq.refl
-`let P Q     substC-VCC⟪ T ⟫ ρ
- rewrite P substC-VCC⟪ T ⟫ ρ | Q substC-VCC⟪ T ⟫ (ext₀^Env ρ)
-                           = PEq.refl
-{-
+-- sub-ren : ∀ {f} {Γ} {σ τ} →
+--   (ρ : Γ ⊨ ε) → (r : Δ ⊆ Γ) → (V : Val τ Δ) → (E : Exp {f} σ Δ) →
+--   (r *-Var E) ⟨ V /var₀⟩ ≡ E
 -}
 
--- composition of contexts
 
-
--- commutation between composition and instantiation
-{-
-_⟪∘_⟫_ : ∀ {f} {Γ Δ Ξ} {σ τ υ} (P : VCC⟪ Δ ⊢ σ ⟫ {f} τ Ξ) (T : Trm υ Γ) →
-           (Q : VCC⟪ Γ ⊢ υ ⟫ {`trm} σ Δ) → (P ⟪∘⟫ Q) ⟪ T ⟫ ≡ P ⟪ Q ⟪ T ⟫ ⟫
-
-`exp E    ⟪∘ T ⟫ Q = PEq.refl
-`λ M      ⟪∘ T ⟫ Q rewrite M ⟪∘ T ⟫ Q = PEq.refl
-
-⟪- ρ -⟫   ⟪∘ T ⟫ Q = Q substC-VCC⟪ T ⟫ ρ
-`val P    ⟪∘ T ⟫ Q rewrite P ⟪∘ T ⟫ Q = PEq.refl
-(F `$ A)  ⟪∘ T ⟫ Q rewrite F ⟪∘ T ⟫ Q | A ⟪∘ T ⟫ Q = PEq.refl
-`if B L R ⟪∘ T ⟫ Q rewrite B ⟪∘ T ⟫ Q | L ⟪∘ T ⟫ Q | R ⟪∘ T ⟫ Q = PEq.refl
-`let P R  ⟪∘ T ⟫ Q rewrite P ⟪∘ T ⟫ Q | R ⟪∘ T ⟫ Q = PEq.refl
--}
 -- Ground simulation
 -- The most boring relation of them all, but which ensures termination.
 -- Moreover, it's an equivalence relation!
@@ -441,7 +279,7 @@ vcc-sim {f} = case f return (λ f → ∀ {Γ} {υ} → Rel^E {f} {_} {Γ} {υ})
   simV {Γ} {τ}     = _[ simT {Γ} {τ} ]^V_
   simT {Γ} {τ} M N =
     {υ : Ty} (P : VCC⟪ Γ ⊢ τ ⟫ υ ε) →
-       sim₀ {`trm} ((vcc-cxt P) ⟪ M ⟫) ((vcc-cxt P) ⟪ N ⟫)
+       sim₀ {`trm} (P ⟪ M ⟫VCC) (P ⟪ N ⟫VCC)
 
 -- open simulation follows trivially: use the obvious context, the hole
 -- itself!
@@ -473,14 +311,10 @@ app cxt v = `λ cxt `$ `exp v
 --   substC-VCC (foo ρ) (`let cxt ((`exp (`var ze)) `$ (`exp (weak *-Var var ρ
 --   ze))))
 
-vcc-sim→cxt-sim : ∀ {Γ} {τ} {M N} → vcc-sim {`trm} {Γ} {τ} M N → cxt-sim M N
-vcc-sim→cxt-sim sMN C with sMN (cxt-vcc C)
-... | prf = {!!}
-
 vcc-sim→sim^T : ∀ {Γ} {τ} {M N} → vcc-sim M N → sim {`trm} {Γ} {τ} M N
-vcc-sim→sim^T {Γ} {τ} sMN ρ = {!!} --sMN P
+vcc-sim→sim^T {Γ} {τ} sMN ρ = {!sMN P!} --sMN P
   where P : VCC⟪ Γ ⊢ τ ⟫ τ ε
-        P = make ρ
+        P = VCC-sub ⟪- refl^Var -⟫ ρ
 
 -- vcc-sim→sim^T {ε} {M = M} {N = N} sMN ρ
 --   rewrite ι^Env₀-lemma ρ M | ι^Env₀-lemma ρ N with sMN ⟪- ι^Var -⟫
