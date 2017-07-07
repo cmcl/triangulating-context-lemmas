@@ -168,7 +168,8 @@ betaV-Trm : ∀ {Γ} {σ} → (ρ : Γ ⊨ ε) → (M : Trm σ Γ) → βVΓ ρ 
 betaV-Trm   {ε}   ρ M rewrite PEq.sym (subst-equiv ρ M) = →βV-refl
 betaV-Trm {Γ ∙ τ} ρ M with betaV-Trm (suc ρ) (βV M (Ren₀ *-Var zero ρ))
 ... | ih rewrite PEq.sym (subst-equiv ρ M) |
-                 subst-equiv (suc ρ) (M ⟨ Ren₀ *-Var zero ρ /var₀⟩) = {!!}
+                 subst-equiv (suc ρ) (M ⟨ Ren₀ *-Var zero ρ /var₀⟩) |
+                 subst-suc ρ M | lemma34 M (suc ρ) (zero ρ) = →βV-step ih
 {-
 betaV-Trm {Γ ∙ τ} ρ M with betaV-Trm (suc ρ) (`λ M `$ (Ren₀ *-Var zero ρ))
 ... | ih = →βV-step {V = {!!}} {!ih!} -- rewrite massive (suc ρ) M (zero ρ)
