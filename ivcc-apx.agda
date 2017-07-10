@@ -59,7 +59,8 @@ subst₀ {Γ ∙ τ} ρ M = subst₀ (succ ρ) (zero* ρ M)
 subst-equiv : ∀ {Γ} {σ} → (ρ : Env₀ Γ) → (M : Trm σ Γ) →
   subst₀ ρ M ≡ subst M ρ
 subst-equiv   {ε}   ρ M rewrite ι^Env₀-lemma ρ M = PEq.refl
-subst-equiv {Γ ∙ τ} ρ M rewrite subst-equiv (succ ρ) (zero* ρ M) | subst-succ ρ M
+subst-equiv {Γ ∙ τ} ρ M rewrite subst-equiv (succ ρ) (zero* ρ M) |
+                                subst-succ ρ M
     = subst-ext M (cons-rho ρ)
 
 -- iterated βV reduction
@@ -101,7 +102,8 @@ lemma-2-10ii-βV r red der with r der
 ... | ih 
       rewrite subst-equiv (succ ρ) (βV M (ren₀-zero ρ)) with →βV-step ih 
 ... | prf 
-      rewrite subst-equiv (succ ρ) (zero* ρ M) | subst-succ ρ M | lemma34 M (succ ρ) (zero ρ) 
+      rewrite subst-equiv (succ ρ) (zero* ρ M) | subst-succ ρ M |
+              lemma34 M (succ ρ) (zero ρ) 
     = prf
 
 -- variable-capturing contexts; no additional renaming/substitution in holes
@@ -184,4 +186,5 @@ ivcc-sim→sim^T {Γ} {τ} {M} {N} sMN ρ = sim-subst
         ... | prf rewrite subst-equiv ρ M = prf 
 
         sim-subst : sim₀ {`trm} (subst M ρ) (subst N ρ)
-        sim-subst = lemma-2-10i-βV (βV-subst M) (lemma-2-10ii-βV (sMN P) (βV-subst N))
+        sim-subst = lemma-2-10i-βV (βV-subst M)
+                                   (lemma-2-10ii-βV (sMN P) (βV-subst N))
