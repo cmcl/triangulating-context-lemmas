@@ -161,6 +161,42 @@ IVCC-sub-βV {Δ = ε}     ρ C M = PEq.refl
 IVCC-sub-βV {Δ = Δ ∙ τ} ρ C =
   IVCC-sub-βV (succ ρ) ((`λ C) `$ (`exp (ren₀-zero ρ))) 
 
+-- composition of contexts
+
+_⟪∘⟫IVCC_ : ∀ {f} {Γ Δ Ξ} {σ τ υ}
+          (P : IVCC⟪ Δ ⊢ σ ⟫ {f} τ Ξ)
+          (Q : IVCC⟪ Γ ⊢ υ ⟫ {`trm} σ Δ) → IVCC⟪ Γ ⊢ υ ⟫ {f} τ Ξ
+`exp E     ⟪∘⟫IVCC Q = `exp E
+`λ M       ⟪∘⟫IVCC Q = `λ (M ⟪∘⟫IVCC Q)
+⟪-⟫        ⟪∘⟫IVCC Q =  Q
+`val P     ⟪∘⟫IVCC Q = `val (P ⟪∘⟫IVCC Q)
+(F `$ A)   ⟪∘⟫IVCC Q = F ⟪∘⟫IVCC Q `$ A ⟪∘⟫IVCC Q
+`if B L R  ⟪∘⟫IVCC Q = `if (B ⟪∘⟫IVCC Q) (L ⟪∘⟫IVCC Q) (R ⟪∘⟫IVCC Q)
+`let P R   ⟪∘⟫IVCC Q = `let (P ⟪∘⟫IVCC Q) (R ⟪∘⟫IVCC Q)
+
+-- commutation between composition and instantiation
+
+_⟪∘_⟫IVCC_ : ∀ {f} {Γ Δ Ξ} {σ τ υ} (P : IVCC⟪ Δ ⊢ σ ⟫ {f} τ Ξ) (T : Trm υ Γ) →
+       (Q : IVCC⟪ Γ ⊢ υ ⟫ {`trm} σ Δ) →
+       (P ⟪∘⟫IVCC Q) ⟪ T ⟫IVCC ≡ P ⟪ Q ⟪ T ⟫IVCC ⟫IVCC
+
+`exp E    ⟪∘ T ⟫IVCC Q = PEq.refl
+`λ M      ⟪∘ T ⟫IVCC Q rewrite M ⟪∘ T ⟫IVCC Q = PEq.refl
+
+⟪-⟫       ⟪∘ T ⟫IVCC Q = PEq.refl
+`val P    ⟪∘ T ⟫IVCC Q rewrite P ⟪∘ T ⟫IVCC Q = PEq.refl
+(F `$ A)  ⟪∘ T ⟫IVCC Q rewrite F ⟪∘ T ⟫IVCC Q | A ⟪∘ T ⟫IVCC Q = PEq.refl
+`if B L R ⟪∘ T ⟫IVCC Q
+  rewrite B ⟪∘ T ⟫IVCC Q | L ⟪∘ T ⟫IVCC Q | R ⟪∘ T ⟫IVCC Q = PEq.refl
+`let P R  ⟪∘ T ⟫IVCC Q rewrite P ⟪∘ T ⟫IVCC Q | R ⟪∘ T ⟫IVCC Q = PEq.refl
+
+-- commutation between substitution and instantiation
+
+-- _substIVCC⟪_⟫_ : ∀ {f} {τ υ} {Γ Δ Ξ}
+--                 (P : IVCC⟪ Γ ⊢ τ ⟫ {f} υ ε) (T : Trm τ Γ) (ρ : Env₀ Γ) →
+--  subst (Ren₀ *-Var P ⟪ T ⟫IVCC) ρ ≡ P ⟪ subst T ρ ⟫IVCC
+-- P substIVCC⟪ T ⟫ ρ = ?
+
 -- Observational simulation wrt IVCCs
 
 ivcc-sim : ∀ {f} {Γ} {υ} → Rel^E {f} {L.zero} {Γ} {υ}
@@ -188,3 +224,12 @@ ivcc-sim→sim^T {Γ} {τ} {M} {N} sMN ρ = sim-subst
         sim-subst : sim₀ {`trm} (subst M ρ) (subst N ρ)
         sim-subst = lemma-2-10i-βV (βV-subst M)
                                    (lemma-2-10ii-βV (sMN P) (βV-subst N))
+
+ivcc-sim₀ : GRel₀^E
+ivcc-sim₀ {f} = case f return (λ f → ∀ {υ} → Rel^E {f} {_} {ε} {υ})
+ of λ { `val → simV ; `trm → simT }
+ where
+  simV : GRel₀^V
+  simT : GRel₀^T
+  simV {τ} = _[ simT {τ} ]^V_
+  simT     = ivcc-sim {`trm} {ε}

@@ -14,6 +14,7 @@ open import lambda-fg
 open import acmm
 open import relations
 open import big-step-prop
+open import ivcc-apx
 open import obs-apx
 
 {-------------------------------------}
@@ -355,6 +356,63 @@ lemma-2-6O {Γ} {σ `→ τ} {M} {N} sMN ρ = cxt-sim→sim^T sMN ρ , lemma2-6-
 lemma-2-6 : ∀ {τ} {M N} → cxt-sim₀ M N → app-cxt-sim₀ {`trm} {τ} M N
 lemma-2-6 {τ} {M} {N} sMN with lemma-2-6O sMN ι^Env
 ... | prf rewrite ι^Env₀ M | ι^Env₀ N = prf
+
+
+_,,_ : Cx → Cx → Cx
+ε ,, Δ = Δ
+Γ ,, ε = Γ
+Γ ,, (Δ ∙ τ) = (Γ ,, Δ) ∙ τ
+
+ext-subst : ∀ {Γ Δ} → Γ ⊨ Δ → (Ξ : Cx) → Γ ,, Ξ ⊨ Δ ,, Ξ
+var (ext-subst ρ Ξ) v = {!!}
+
+barC : ∀ {Γ Δ} {σ τ} → IVCC⟪ Γ ⊢ σ ⟫ {`trm} τ Δ → (Ξ : Cx) →
+  IVCC⟪ Γ ,, Ξ ⊢ σ ⟫ {`trm} τ (Δ ,, Ξ)
+barC P Ξ = {!!}
+
+extC : ∀ {Γ Δ} {σ τ} → IVCC⟪ Γ ⊢ σ ⟫ {`trm} τ Δ → (Ξ : Cx) →
+  IVCC⟪ Γ ⊢ σ ⟫ {`trm} τ (Δ ,, Ξ)
+extC P Ξ = {!!}
+
+app⟪-⟫ : ∀ {Γ} {σ τ} → (U : Val σ Γ) → IVCC⟪ Γ ⊢ σ `→ τ ⟫ τ Γ
+app⟪-⟫ U = `let ⟪-⟫ (`exp (Val→Spine U))
+
+subst-inst-commute : ∀ {Γ Ξ} {σ τ ω} → (P : IVCC⟪ ε ⊢ σ ⟫ {`trm} τ ε) →
+  (U : Val₀ ω) → (M : Trm (ω `→ σ) Γ) → (ρ : Γ ⊨ ε) →
+  subst (extC (barC {ε} P Γ) Ξ ⟪ app⟪-⟫ (Ren₀ *-Var U) ⟪ M ⟫IVCC ⟫IVCC) (ext-subst ρ Ξ) ≡
+    (Ren₀ *-Var (P ⟪ app⟪-⟫ U ⟪ subst M ρ ⟫IVCC ⟫IVCC))
+subst-inst-commute = {!!}
+
+-- Lemma 2.6 but for variable capturing contexts.
+
+lemma-2-6O-IVCC : ∀ {Γ} {τ} {M N} → ivcc-sim M N →
+  app-cxt-sim {`trm} {Γ} {τ} M N
+lemma-2-6O-IVCC {Γ} {`b β} = ivcc-sim→sim^T
+lemma-2-6O-IVCC {Γ} {σ `→ τ} {M} {N} sMN ρ = (ivcc-sim→sim^T sMN ρ) , {!!}
+ where
+  -- basic applicative setting, relative to the valuation ρ
+  appT₀ : (M : Exp (σ `→ τ) Γ) (U : Val₀ σ) → Trm₀ τ
+  appT₀ M U = appT (subst M ρ) U
+
+  -- appT₀ reified as a one-hole VCC context: substitution occurs at top-level
+  appP : ∀ {Γ} {σ τ} → (U : Val σ Γ) → IVCC⟪ Γ ⊢ σ `→ τ ⟫ τ Γ
+  appP U = `let ⟪-⟫ (`exp (Val→Spine U))
+
+  app-βV : (U : Val σ Γ) → (M : Trm (σ `→ τ) Γ) →
+    (IVCC-sub ρ (appP U) ⟪ M ⟫IVCC) →βV subst ((appP U) ⟪ M ⟫IVCC) ρ 
+  app-βV U M rewrite IVCC-sub-βV ρ (appP U) M = {!!}
+
+  -- hence ivcc-sim₀ is closed under appT₀, modulo rewrites
+  sim-appT₀ : ∀ U → ivcc-sim₀ (appT₀ M U) (appT₀ N U)
+  sim-appT₀ U P with sMN (IVCC-sub ρ (appP (Ren₀ *-Var U)))
+  ... | prf = {!P ⟪ (appP U) ⟪ subst M ρ ⟫IVCC ⟫IVCC!}
+ -- with sMN (P ⟪∘⟫IVCC appP₀ U)
+ --  ... | prf rewrite P ⟪∘ M ⟫IVCC appP₀ U = {!!}
+
+  -- and hence likewise, finally, app-cxt-sim₀ itself,
+  -- by IH at type τ (via dummy valuation ι^Env, more rewrites)
+  lemma2-6-appT₀ : ∀ U → app-cxt-sim₀ (appT₀ M U) (appT₀ N U)
+  lemma2-6-appT₀ U = {!lemma-2-6O-IVCC!}
 
 -- Now, Lemma 2.18, done using Ian's argument.
 
