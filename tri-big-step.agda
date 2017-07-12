@@ -370,17 +370,19 @@ barC : ∀ {Γ Δ} {σ τ} → IVCC⟪ Γ ⊢ σ ⟫ {`trm} τ Δ → (Ξ : Cx) 
   IVCC⟪ Γ ,, Ξ ⊢ σ ⟫ {`trm} τ (Δ ,, Ξ)
 barC P Ξ = {!!}
 
-extC : ∀ {Γ Δ} {σ τ} → IVCC⟪ Γ ⊢ σ ⟫ {`trm} τ Δ → (Ξ : Cx) →
-  IVCC⟪ Γ ⊢ σ ⟫ {`trm} τ (Δ ,, Ξ)
-extC P Ξ = {!!}
+-- extC : ∀ {Γ Δ} {σ τ} → IVCC⟪ Γ ⊢ σ ⟫ {`trm} τ Δ → (Ξ : Cx) →
+--   IVCC⟪ Γ ⊢ σ ⟫ {`trm} τ (Δ ,, Ξ)
+-- extC P Ξ = {!!}
 
+-- appT₀ (see below) reified as a one-hole VCC context: substitution occurs at
+-- top-level.
 app⟪-⟫ : ∀ {Γ} {σ τ} → (U : Val σ Γ) → IVCC⟪ Γ ⊢ σ `→ τ ⟫ τ Γ
 app⟪-⟫ U = `let ⟪-⟫ (`exp (Val→Spine U))
 
-subst-inst-commute : ∀ {Γ Ξ} {σ τ ω} → (P : IVCC⟪ ε ⊢ σ ⟫ {`trm} τ ε) →
+subst-inst-commute : ∀ {Γ} {σ τ ω} → (P : IVCC⟪ ε ⊢ σ ⟫ {`trm} τ ε) →
   (U : Val₀ ω) → (M : Trm (ω `→ σ) Γ) → (ρ : Γ ⊨ ε) →
-  subst (extC (barC {ε} P Γ) Ξ ⟪ app⟪-⟫ (Ren₀ *-Var U) ⟪ M ⟫IVCC ⟫IVCC) (ext-subst ρ Ξ) ≡
-    (Ren₀ *-Var (P ⟪ app⟪-⟫ U ⟪ subst M ρ ⟫IVCC ⟫IVCC))
+  subst (barC {ε} P Γ ⟪ app⟪-⟫ (Ren₀ *-Var U) ⟪ M ⟫IVCC ⟫IVCC) ρ ≡
+    P ⟪ app⟪-⟫ U ⟪ subst M ρ ⟫IVCC ⟫IVCC
 subst-inst-commute = {!!}
 
 -- Lemma 2.6 but for variable capturing contexts.
@@ -394,7 +396,7 @@ lemma-2-6O-IVCC {Γ} {σ `→ τ} {M} {N} sMN ρ = (ivcc-sim→sim^T sMN ρ) , {
   appT₀ : (M : Exp (σ `→ τ) Γ) (U : Val₀ σ) → Trm₀ τ
   appT₀ M U = appT (subst M ρ) U
 
-  -- appT₀ reified as a one-hole VCC context: substitution occurs at top-level
+
   appP : ∀ {Γ} {σ τ} → (U : Val σ Γ) → IVCC⟪ Γ ⊢ σ `→ τ ⟫ τ Γ
   appP U = `let ⟪-⟫ (`exp (Val→Spine U))
 
