@@ -203,3 +203,12 @@ vcc-sim→sim^T {Γ} {τ} {M} {N} sMN ρ = sim-subst
 
         sim-subst : sim₀ {`trm} (subst M ρ) (subst N ρ)
         sim-subst = lemma-2-10i-βV βV-M (lemma-2-10ii-βV (sMN P) βV-N)
+
+vcc-sim₀ : GRel₀^E
+vcc-sim₀ {f} = case f return (λ f → ∀ {υ} → Rel^E {f} {_} {ε} {υ})
+ of λ { `val → simV ; `trm → simT }
+ where
+  simV : GRel₀^V
+  simT : GRel₀^T
+  simV {τ} = _[ simT {τ} ]^V_
+  simT     = vcc-sim {`trm} {ε}
