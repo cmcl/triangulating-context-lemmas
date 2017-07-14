@@ -385,7 +385,42 @@ subst-inst-commute : ∀ {Γ} {σ τ ω} → (P : IVCC⟪ ε ⊢ σ ⟫ {`trm} �
     P ⟪ app⟪-⟫ U ⟪ subst M ρ ⟫IVCC ⟫IVCC
 subst-inst-commute = {!!}
 
--- Lemma 2.6 but for variable capturing contexts.
+ι^Env-ext-lemma : ∀ {f} {Γ} {ω σ τ} → (E : Exp {f} ω (Γ ∙ σ ∙ τ)) →
+  (ext₀^Env (ext₀^Env ι^Env) *-Val E) ≡ E
+ι^Env-ext-lemma = ι^Env-lemma-aux {ρ = ext₀^Env (ext₀^Env ι^Env)}
+  (ext₀^Env-ext₀ {ρ = ext₀^Env ι^Env} (ext₀^Env-ext₀ {ρ = ι^Env} (λ v → PEq.refl)))
+
+-- The same proof as for ext₀^Env-ext₀ but I cannot think how to generalise
+-- the statement to encompass both.
+ext₀^Env^Var-ext₀ : ∀ {Γ Δ} {σ} → {r : Γ ⊆ Δ} → {ρ : Δ ⊨ Γ} →
+  (∀ {τ} v → var ρ {τ} (var r v) ≡ `var v) →
+ ∀ {τ} v → var (ext₀^Env {σ} {Δ} ρ) {τ} (var (ext₀^Var r) v) ≡ `var v
+ext₀^Env^Var-ext₀ {Γ} {Δ} {σ} {r} {ρ} eq =
+  [ P ][ PEq.refl ,,, (PEq.cong (weak *-Var_)) ∘ eq ]
+  where
+    P = λ {τ} v → var (ext₀^Env {σ} {Δ} ρ) {τ} (var (ext₀^Var r) v) ≡ `var v
+
+ren-sub : ∀ {f} {Γ Δ} {σ} →
+  (E : Exp {f} σ Γ) → (r : Γ ⊆ Δ) → (ρ : Δ ⊨ Γ) →
+  (∀ {τ} v → var ρ {τ} (var r v) ≡ `var v) →
+  subst (r *-Var E) ρ ≡ E
+ren-sub (`var v) r ρ prf = prf v
+ren-sub (`b b) r ρ prf = PEq.refl
+ren-sub (`λ M) r ρ prf
+  with ren-sub M (ext₀^Var r) (ext₀^Env ρ) (ext₀^Env^Var-ext₀ {ρ = ρ} prf)
+... | ih rewrite ih = PEq.refl
+ren-sub (`val M) r ρ prf rewrite ren-sub M r ρ prf = PEq.refl
+ren-sub (F `$ A) r ρ prf
+  rewrite ren-sub F r ρ prf | ren-sub A r ρ prf = PEq.refl
+ren-sub (`if B L R) r ρ prf
+  rewrite ren-sub B r ρ prf | ren-sub L r ρ prf | ren-sub R r ρ prf = PEq.refl
+ren-sub (`let M N) r ρ prf rewrite ren-sub M r ρ prf
+  with ren-sub N (ext₀^Var r) (ext₀^Env ρ) (ext₀^Env^Var-ext₀ {ρ = ρ} prf)
+... | ih rewrite ih = PEq.refl
+
+weak-sub : ∀ {f} {Γ} {σ τ} → (V : Val τ Γ) → (E : Exp {f} σ Γ) →
+  (weak *-Var E) ⟨ V /var₀⟩ ≡ E
+weak-sub V E = ren-sub E weak (ι^Env `∙ V) (λ v → PEq.refl)
 
 lemma-2-6O-IVCC : ∀ {Γ} {τ} {M N} → ivcc-sim M N →
   app-cxt-sim {`trm} {Γ} {τ} M N
@@ -406,9 +441,8 @@ lemma-2-6O-IVCC {Γ} {σ `→ τ} {M} {N} sMN ρ = (ivcc-sim→sim^T sMN ρ) , {
 
   -- hence ivcc-sim₀ is closed under appT₀, modulo rewrites
   sim-appT₀ : ∀ U → ivcc-sim₀ (appT₀ M U) (appT₀ N U)
-  sim-appT₀ U P with sMN (IVCC-sub ρ (appP (Ren₀ *-Var U)))
-  ... | prf = {!P ⟪ (appP U) ⟪ subst M ρ ⟫IVCC ⟫IVCC!}
- -- with sMN (P ⟪∘⟫IVCC appP₀ U)
+  sim-appT₀ U P = {!P ⟪ (appP U) ⟪ subst M ρ ⟫IVCC ⟫IVCC!}
+ -- with 
  --  ... | prf rewrite P ⟪∘ M ⟫IVCC appP₀ U = {!!}
 
   -- and hence likewise, finally, app-cxt-sim₀ itself,
