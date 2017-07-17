@@ -424,7 +424,7 @@ weak-sub V E = ren-sub E weak (ι^Env `∙ V) (λ v → PEq.refl)
 
 renC : ∀ {f} {Γ Δ Δ'} {σ τ} → VCC⟪ Γ ⊢ σ ⟫ {f} τ Δ → Δ ⊆ Δ' →
   VCC⟪ Γ ⊢ σ ⟫ {f} τ Δ'
-renC (`λ M) = (`λ ∘ (renC M) ∘ ext₀^Var)
+renC (`λ M) ρ = `λ (renC M (ext₀^Var ρ))
 renC (`exp M) ρ = `exp (ρ *-Var M)
 renC ⟪- r -⟫ ρ = ⟪- trans^Var r ρ -⟫
 renC (`val P) = `val ∘ (renC P)
@@ -447,6 +447,38 @@ barC (F `$ A) = (barC F) `$ (barC A)
 barC (`if B L R) = `if (barC B) (barC L) (barC R)
 barC {σ = σ} (`let {ν} M N) = `let (barC M) (renC (barC N) swp)
 
+renC-VCC : ∀ {f} {Γ Δ Ξ} {σ τ} → (P : VCC⟪ Γ ⊢ σ ⟫ {f} τ Δ) →
+ {r r' : Δ ⊆ Ξ} → (∀ {τ} v → var r {τ} v ≡ var r' v) → renC P r ≡ renC P r'
+renC-VCC P eq = {!!}
+
+ren-ren : ∀ {f} {Γ Δ Ξ Ω} {σ τ} →
+  (P : VCC⟪ Γ ⊢ σ ⟫ {f} τ Δ) → (r1 : Δ ⊆ Ξ) → (r2 : Ξ ⊆ Ω) →
+  renC (renC P r1) r2 ≡ renC P (trans^Var r1 r2)
+ren-ren (`λ P) r1 r2 with renC-VCC P (pop!-trans {inc₁ = r1} {inc₂ = r2})
+... | ren-eq rewrite ren-eq |
+                     ren-ren P (ext₀^Var r1) (ext₀^Var r2) = PEq.refl
+ren-ren (`exp x) r1 r2 = {!!}
+ren-ren ⟪- x -⟫ r1 r2 = {!!}
+ren-ren (`val P) r1 r2 = {!!}
+ren-ren (P `$ P₁) r1 r2 = {!!}
+ren-ren (`if P P₁ P₂) r1 r2 = {!!}
+ren-ren (`let P x) r1 r2 = {!!}
+
+ren-bar : ∀ {f} {Γ Δ Ξ} {σ τ ω} →
+  (P : VCC⟪ Γ ⊢ σ ⟫ {f} τ Δ) → (V : Val ω Ξ) → (M : Trm σ (Γ ∙ ω))
+  (r1 : Δ ∙ ω ⊆ Ξ) → (r2 : Ξ ⊆ Γ) →
+  (renC (barC P) r1) ⟪ M ⟫VCC ⟨ V /var₀⟩ ≡ P
+    ⟪ M ⟨ r2 *-Var V /var₀⟩ ⟫VCC
+ren-bar P V M r1 r2 = ?
+{-
+ren-bar (`λ P) V M r1 r2 r3 rewrite ren-ren (barC P) swp (ext₀^Var r3) = {!ren-bar P V M (trans^Var r1 weak) r2!}
+ren-bar (`exp x) V M r1 r2 r3 = {!!}
+ren-bar ⟪- x -⟫ V M r1 r2 r3 = {!ren-bar P V M (trans^Var r1 weak) r2!}
+ren-bar (`val P) V M r1 r2 r3 = {!!}
+ren-bar (P `$ P₁) V M r1 r2 r3 = {!!}
+ren-bar (`if P P₁ P₂) V M r1 r2 r3 = {!!}
+ren-bar (`let P x) V M r1 r2 r3 = {!!}
+-}
 subst-inst-comm : ∀ {f} {Γ Δ Ξ} {σ τ ω} →
   (P : VCC⟪ Γ ⊢ σ ⟫ {f} τ Δ) → (V : Val ω Ξ) → (M : Trm σ (Γ ∙ ω))
   (r1 : Ξ ⊆ Δ) → (r2 : Ξ ⊆ Γ) →
