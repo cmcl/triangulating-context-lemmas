@@ -357,38 +357,28 @@ lemma-2-6 : ∀ {τ} {M N} → cxt-sim₀ M N → app-cxt-sim₀ {`trm} {τ} M N
 lemma-2-6 {τ} {M} {N} sMN with lemma-2-6O sMN ι^Env
 ... | prf rewrite ι^Env₀ M | ι^Env₀ N = prf
 
+infixl 9 _<:_
 
-_,,_ : Cx → Cx → Cx
-ε ,, Δ = Δ
-Γ ,, ε = Γ
-Γ ,, (Δ ∙ τ) = (Γ ,, Δ) ∙ τ
-
-ext-subst : ∀ {Γ Δ} → Γ ⊨ Δ → (Ξ : Cx) → Γ ,, Ξ ⊨ Δ ,, Ξ
-var (ext-subst ρ Ξ) v = {!!}
-
-barC' : ∀ {Γ Δ} {σ τ} → VCC⟪ Γ ⊢ σ ⟫ {`trm} τ Δ → (Ξ : Cx) →
-  VCC⟪ Γ ,, Ξ ⊢ σ ⟫ {`trm} τ (Δ ,, Ξ)
-barC' P Ξ = {!!}
-
--- extC : ∀ {Γ Δ} {σ τ} → VCC⟪ Γ ⊢ σ ⟫ {`trm} τ Δ → (Ξ : Cx) →
---   VCC⟪ Γ ⊢ σ ⟫ {`trm} τ (Δ ,, Ξ)
--- extC P Ξ = {!!}
+_<:_ : Cx → Ty → Cx
+ε <: σ = ε ∙ σ
+Γ ∙ τ <: σ = (Γ <: σ) ∙ τ
 
 -- appT₀ (see below) reified as a one-hole VCC context: substitution occurs at
 -- top-level.
 app⟪-⟫ : ∀ {Γ} {σ τ} → (U : Val σ Γ) → VCC⟪ Γ ⊢ σ `→ τ ⟫ τ Γ
 app⟪-⟫ U = `let ⟪- refl^Var -⟫ (`exp (Val→Spine U))
 
-subst-inst-commute : ∀ {Γ} {σ τ ω} → (P : VCC⟪ ε ⊢ σ ⟫ {`trm} τ ε) →
-  (U : Val₀ ω) → (M : Trm (ω `→ σ) Γ) → (ρ : Γ ⊨ ε) →
-  subst (barC' {ε} P Γ ⟪ app⟪-⟫ (Ren₀ *-Var U) ⟪ M ⟫VCC ⟫VCC) ρ ≡
-    P ⟪ app⟪-⟫ U ⟪ subst M ρ ⟫VCC ⟫VCC
-subst-inst-commute = {!!}
+-- subst-inst-commute : ∀ {Γ} {σ τ ω} → (P : VCC⟪ ε ⊢ σ ⟫ {`trm} τ ε) →
+--   (U : Val₀ ω) → (M : Trm (ω `→ σ) Γ) → (ρ : Γ ⊨ ε) →
+--   subst (barC' {ε} P Γ ⟪ app⟪-⟫ (Ren₀ *-Var U) ⟪ M ⟫VCC ⟫VCC) ρ ≡
+--     P ⟪ app⟪-⟫ U ⟪ subst M ρ ⟫VCC ⟫VCC
+-- subst-inst-commute = {!!}
 
 ι^Env-ext-lemma : ∀ {f} {Γ} {ω σ τ} → (E : Exp {f} ω (Γ ∙ σ ∙ τ)) →
   (ext₀^Env (ext₀^Env ι^Env) *-Val E) ≡ E
 ι^Env-ext-lemma = ι^Env-lemma-aux {ρ = ext₀^Env (ext₀^Env ι^Env)}
-  (ext₀^Env-ext₀ {ρ = ext₀^Env ι^Env} (ext₀^Env-ext₀ {ρ = ι^Env} (λ v → PEq.refl)))
+  (ext₀^Env-ext₀ {ρ = ext₀^Env ι^Env} (ext₀^Env-ext₀ {ρ = ι^Env}
+    (λ v → PEq.refl)))
 
 -- The same proof as for ext₀^Env-ext₀ but I cannot think how to generalise
 -- the statement to encompass both.
@@ -464,27 +454,38 @@ ren-ren (P `$ P₁) r1 r2 = {!!}
 ren-ren (`if P P₁ P₂) r1 r2 = {!!}
 ren-ren (`let P x) r1 r2 = {!!}
 
-ren-bar : ∀ {f} {Γ Δ Ξ} {σ τ ω} →
-  (P : VCC⟪ Γ ⊢ σ ⟫ {f} τ Δ) → (V : Val ω Ξ) → (M : Trm σ (Γ ∙ ω))
-  (r1 : Δ ∙ ω ⊆ Ξ) → (r2 : Ξ ⊆ Γ) →
-  (renC (barC P) r1) ⟪ M ⟫VCC ⟨ V /var₀⟩ ≡ P
-    ⟪ M ⟨ r2 *-Var V /var₀⟩ ⟫VCC
-ren-bar P V M r1 r2 = ?
+infixl 7 _,,_
+
+_,,_ : Cx → Cx → Cx
+Γ ,, ε = Γ
+Γ ,, (Δ ∙ τ) = (Γ ∙ τ) ,, Δ
+
+push : ∀ {Γ Δ Ξ} → Γ ⊨ Δ → Γ ,, Ξ ⊨ Δ ,, Ξ
+var (push ρ) v = {!!}
+--var (push {ε} ρ) v = var ρ v
+--var (push {Γ ∙ τ} ρ) ze = `var ze
+--var (push {Γ ∙ τ} ρ) (su v) = weak *-Var (var (push {Γ} ρ) v)
+
 {-
-ren-bar (`λ P) V M r1 r2 r3 rewrite ren-ren (barC P) swp (ext₀^Var r3) = {!ren-bar P V M (trans^Var r1 weak) r2!}
-ren-bar (`exp x) V M r1 r2 r3 = {!!}
-ren-bar ⟪- x -⟫ V M r1 r2 r3 = {!ren-bar P V M (trans^Var r1 weak) r2!}
-ren-bar (`val P) V M r1 r2 r3 = {!!}
-ren-bar (P `$ P₁) V M r1 r2 r3 = {!!}
-ren-bar (`if P P₁ P₂) V M r1 r2 r3 = {!!}
-ren-bar (`let P x) V M r1 r2 r3 = {!!}
+-push-id : ∀ {Γ Δ Ξ} {σ} {v : Var σ Γ} (ρ : Δ ⊨ Ξ) →
+-  var (push {Γ} ρ) v ≡ `var v
+-push-id ρ = {!!}
 -}
+
+ren-bar : ∀ {f} {Γ Δ Ξ Ω} {σ τ ω} →
+  (P : VCC⟪ Γ ,, Ξ ⊢ σ ⟫ {f} τ (Δ ,, Ξ)) → (V : Val ω Ω) →
+  (M : Trm σ ((Γ ,, Ξ) ∙ ω)) → (r : Δ ,, Ξ ⊆ Ω ,, Ξ) → (rV : Ω ⊆ Γ ,, Ξ) →
+  (prf : ∀ {Γ Δ Ξ} {σ} → Γ ,, Ξ ⊆ Δ ,, Ξ → (Γ ,, Ξ) ∙ σ ⊆ Δ ∙ σ ,, Ξ) →
+  subst (renC (barC P) (prf {σ = ω} r) ⟪ M ⟫VCC) (push {Ξ = Ξ} (ι^Env {Ω} `∙ V)) ≡
+    (renC P r) ⟪ M ⟨ rV *-Var V /var₀⟩ ⟫VCC
+ren-bar P V M r rV prf = {!!}
+{-
 subst-inst-comm : ∀ {f} {Γ Δ Ξ} {σ τ ω} →
   (P : VCC⟪ Γ ⊢ σ ⟫ {f} τ Δ) → (V : Val ω Ξ) → (M : Trm σ (Γ ∙ ω))
-  (r1 : Ξ ⊆ Δ) → (r2 : Ξ ⊆ Γ) →
-  (barC P) ⟪ M ⟫VCC ⟨ r1 *-Var V /var₀⟩ ≡ P ⟪ M ⟨ r2 *-Var V /var₀⟩ ⟫VCC
-subst-inst-comm (`λ P) V M r1 r2 = {!!}
-subst-inst-comm (`exp E) V M r1 r2 = weak-sub (r1 *-Var V) E
+  (r1 : Ξ ⊆ Δ) → (r2 : Ξ ⊆ Γ) → (r3 : Γ ⊆ Δ) →
+  (barC- P) ⟪ M ⟫VCC ⟨ r1 *-Var V /var₀⟩ ≡ P ⟪ M ⟨ r2 *-Var V /var₀⟩ ⟫VCC
+subst-inst-comm {ω = ω} (`λ P) V M r1 r2 = {!renC (barC {σ = ω} P) swp!}
+subst-inst-comm (`exp E) V M r1 r2 = ? --weak-sub (r1 *-Var V) E
 subst-inst-comm ⟪- r -⟫ V M r1 r2 = {!!}
 subst-inst-comm (`val P) V M r1 r2
   rewrite subst-inst-comm P V M r1 r2 = PEq.refl
@@ -495,7 +496,7 @@ subst-inst-comm (`if B L R) V M r1 r2
   rewrite subst-inst-comm B V M r1 r2 | subst-inst-comm L V M r1 r2 |
           subst-inst-comm R V M r1 r2 = PEq.refl
 subst-inst-comm (`let P Q) V M r1 r2 = {!!}
-
+-}
 lemma-2-6O-VCC : ∀ {Γ} {τ} {M N} → vcc-sim M N →
   app-cxt-sim {`trm} {Γ} {τ} M N
 lemma-2-6O-VCC {Γ} {`b β} = vcc-sim→sim^T
