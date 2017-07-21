@@ -458,42 +458,38 @@ infixl 7 _,,_
 
 _,,_ : Cx → Cx → Cx
 Γ ,, ε = Γ
-Γ ,, (Δ ∙ τ) = (Γ ∙ τ) ,, Δ
+Γ ,, (Δ ∙ τ) = (Γ ,, Δ) ∙ τ
 
-push : ∀ {Γ Δ Ξ} → Γ ⊨ Δ → Γ ,, Ξ ⊨ Δ ,, Ξ
-var (push ρ) v = {!!}
---var (push {ε} ρ) v = var ρ v
---var (push {Γ ∙ τ} ρ) ze = `var ze
---var (push {Γ ∙ τ} ρ) (su v) = weak *-Var (var (push {Γ} ρ) v)
+push : ∀ {Γ Δ} → (Ξ : Cx) → Γ ⊨ Δ → Γ ,, Ξ ⊨ Δ ,, Ξ
+push ε ρ = ρ
+push (Ξ ∙ τ) ρ = ext₀^Env (push Ξ ρ)
 
-{-
--push-id : ∀ {Γ Δ Ξ} {σ} {v : Var σ Γ} (ρ : Δ ⊨ Ξ) →
--  var (push {Γ} ρ) v ≡ `var v
--push-id ρ = {!!}
--}
+ren-ext : ∀ {Δ Ξ} {σ τ} → (Δ ,, Ξ) ∙ σ ⊆ (Δ ∙ σ) ,, Ξ →
+  (Δ ,, (Ξ ∙ τ)) ∙ σ ⊆ Δ ∙ σ ,, Ξ ∙ τ
+ren-ext r = trans^Var swp (ext₀^Var r)
 
 ren-bar : ∀ {f} {Γ Δ Ξ} {σ τ ω} →
-  (P : VCC⟪ Γ ,, Ξ ⊢ σ ⟫ {f} τ (Δ ,, Ξ)) → (V : Val ω Δ) →
-  (M : Trm σ ((Γ ,, Ξ) ∙ ω)) → (rV : Δ ⊆ Γ ,, Ξ) →
+  (P : VCC⟪ Γ ⊢ σ ⟫ {f} τ (Δ ,, Ξ)) → (V : Val ω Δ) →
+  (M : Trm σ (Γ ∙ ω)) → (rV : Δ ⊆ Γ) →
   (r : (Δ ,, Ξ) ∙ ω ⊆ Δ ∙ ω ,, Ξ) →
-  subst ((renC (barC P) r) ⟪ M ⟫VCC) (push {Ξ = Ξ} (ι^Env `∙ V)) ≡
+  subst ((renC (barC P) r) ⟪ M ⟫VCC) (push Ξ (ι^Env `∙ V)) ≡
     P ⟪ M ⟨ rV *-Var V /var₀⟩ ⟫VCC
-ren-bar (`λ {ν} P) V M rV r with ren-bar P V M rV (ext₀^Var r)
-... | ih = {!ren-bar !}
-ren-bar (`exp x) V M rV r = {!ren-ren (barC P) swp (ext₀^Var r)!}
+ren-bar {`val} {Γ} {Δ} {Ξ} {ω = ω} (`λ {ν} P) V M rV r
+  with ren-bar {Ξ = Ξ ∙ ν} P V M rV (ren-ext {Δ} {Ξ} {ω} {ν} r)
+... | ih rewrite ren-ren (barC P) swp (ext₀^Var r) | ih = PEq.refl
+ren-bar (`exp x) V M rV r = {!!}
 ren-bar ⟪- x -⟫ V M rV r = {!!}
 ren-bar (`val P) V M rV r = {!!}
 ren-bar (P `$ P₁) V M rV r = {!!}
 ren-bar (`if P P₁ P₂) V M rV r = {!!}
 ren-bar (`let P x) V M rV r = {!!}
 
-{-
 subst-inst-comm : ∀ {f} {Γ Δ Ξ} {σ τ ω} →
   (P : VCC⟪ Γ ⊢ σ ⟫ {f} τ Δ) → (V : Val ω Ξ) → (M : Trm σ (Γ ∙ ω))
-  (r1 : Ξ ⊆ Δ) → (r2 : Ξ ⊆ Γ) → (r3 : Γ ⊆ Δ) →
-  (barC- P) ⟪ M ⟫VCC ⟨ r1 *-Var V /var₀⟩ ≡ P ⟪ M ⟨ r2 *-Var V /var₀⟩ ⟫VCC
-subst-inst-comm {ω = ω} (`λ P) V M r1 r2 = {!renC (barC {σ = ω} P) swp!}
-subst-inst-comm (`exp E) V M r1 r2 = ? --weak-sub (r1 *-Var V) E
+  (r1 : Ξ ⊆ Δ) → (r2 : Ξ ⊆ Γ) →
+  (barC P) ⟪ M ⟫VCC ⟨ r1 *-Var V /var₀⟩ ≡ P ⟪ M ⟨ r2 *-Var V /var₀⟩ ⟫VCC
+subst-inst-comm {ω = ω} (`λ P) V M r1 r2 = {!ren-bar {Ξ = ε} P (trans^Var r1 weak *-Var V) M!}
+subst-inst-comm (`exp E) V M r1 r2 = weak-sub (r1 *-Var V) E --
 subst-inst-comm ⟪- r -⟫ V M r1 r2 = {!!}
 subst-inst-comm (`val P) V M r1 r2
   rewrite subst-inst-comm P V M r1 r2 = PEq.refl
@@ -504,7 +500,7 @@ subst-inst-comm (`if B L R) V M r1 r2
   rewrite subst-inst-comm B V M r1 r2 | subst-inst-comm L V M r1 r2 |
           subst-inst-comm R V M r1 r2 = PEq.refl
 subst-inst-comm (`let P Q) V M r1 r2 = {!!}
--}
+
 lemma-2-6O-VCC : ∀ {Γ} {τ} {M N} → vcc-sim M N →
   app-cxt-sim {`trm} {Γ} {τ} M N
 lemma-2-6O-VCC {Γ} {`b β} = vcc-sim→sim^T
