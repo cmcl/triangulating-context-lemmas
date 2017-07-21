@@ -472,13 +472,21 @@ var (push ρ) v = {!!}
 -push-id ρ = {!!}
 -}
 
-ren-bar : ∀ {f} {Γ Δ Ξ Ω} {σ τ ω} →
-  (P : VCC⟪ Γ ,, Ξ ⊢ σ ⟫ {f} τ (Δ ,, Ξ)) → (V : Val ω Ω) →
-  (M : Trm σ ((Γ ,, Ξ) ∙ ω)) → (r : Δ ,, Ξ ⊆ Ω ,, Ξ) → (rV : Ω ⊆ Γ ,, Ξ) →
-  (prf : ∀ {Γ Δ Ξ} {σ} → Γ ,, Ξ ⊆ Δ ,, Ξ → (Γ ,, Ξ) ∙ σ ⊆ Δ ∙ σ ,, Ξ) →
-  subst (renC (barC P) (prf {σ = ω} r) ⟪ M ⟫VCC) (push {Ξ = Ξ} (ι^Env {Ω} `∙ V)) ≡
-    (renC P r) ⟪ M ⟨ rV *-Var V /var₀⟩ ⟫VCC
-ren-bar P V M r rV prf = {!!}
+ren-bar : ∀ {f} {Γ Δ Ξ} {σ τ ω} →
+  (P : VCC⟪ Γ ,, Ξ ⊢ σ ⟫ {f} τ (Δ ,, Ξ)) → (V : Val ω Δ) →
+  (M : Trm σ ((Γ ,, Ξ) ∙ ω)) → (rV : Δ ⊆ Γ ,, Ξ) →
+  (r : (Δ ,, Ξ) ∙ ω ⊆ Δ ∙ ω ,, Ξ) →
+  subst ((renC (barC P) r) ⟪ M ⟫VCC) (push {Ξ = Ξ} (ι^Env `∙ V)) ≡
+    P ⟪ M ⟨ rV *-Var V /var₀⟩ ⟫VCC
+ren-bar (`λ {ν} P) V M rV r with ren-bar P V M rV (ext₀^Var r)
+... | ih = {!ren-bar !}
+ren-bar (`exp x) V M rV r = {!ren-ren (barC P) swp (ext₀^Var r)!}
+ren-bar ⟪- x -⟫ V M rV r = {!!}
+ren-bar (`val P) V M rV r = {!!}
+ren-bar (P `$ P₁) V M rV r = {!!}
+ren-bar (`if P P₁ P₂) V M rV r = {!!}
+ren-bar (`let P x) V M rV r = {!!}
+
 {-
 subst-inst-comm : ∀ {f} {Γ Δ Ξ} {σ τ ω} →
   (P : VCC⟪ Γ ⊢ σ ⟫ {f} τ Δ) → (V : Val ω Ξ) → (M : Trm σ (Γ ∙ ω))
