@@ -104,7 +104,7 @@ cons-rho : ∀ {Γ} {σ} (ρ : Env₀ (Γ ∙ σ)) →
 cons-rho ρ ze = PEq.refl
 cons-rho ρ (su v) = PEq.refl
 
-subst-rho : ∀ {Γ} {σ} → (ρ : Env₀ Γ) → (M : Trm σ Γ) → Trm₀ σ
+subst-rho : ∀ {Γ} {f} {σ} → (ρ : Env₀ Γ) → (M : Exp {f} σ Γ) → Exp₀ {f} σ
 subst-rho {ε} ρ M = M
 subst-rho {Γ ∙ τ} ρ M = subst-rho (suc ρ) (M ⟨ Ren₀ *-Var var ρ ze /var₀⟩)
 
@@ -112,11 +112,11 @@ lemma35 : ∀ {f} {Γ} {σ τ} → (E : (σ ⊢ Exp {f} τ) Γ) → (ρ : Γ ⊨
  subst E (ρ `∙ U) ≡ subst (E ⟨ Ren₀ *-Var U /var₀⟩) ρ
 lemma35 E ρ U = lemma33 ρ (ι^Env `∙ (Ren₀ *-Var U)) E
 
-subst-suc : ∀ {Γ} {σ τ} → (ρ : Γ ∙ τ ⊨ ε) → (M : Trm σ (Γ ∙ τ)) →
+subst-suc : ∀ {f} {Γ} {σ τ} → (ρ : Γ ∙ τ ⊨ ε) → (M : Exp {f} σ (Γ ∙ τ)) →
   subst (M ⟨ Ren₀ *-Var zero ρ /var₀⟩) (suc ρ) ≡ subst M (suc ρ `∙ zero ρ)
 subst-suc ρ M rewrite lemma35 M (suc ρ) (zero ρ) = PEq.refl
 
-subst-equiv : ∀ {Γ} {σ} → (ρ : Env₀ Γ) → (M : Trm σ Γ) →
+subst-equiv : ∀ {Γ} {f} {σ} → (ρ : Env₀ Γ) → (M : Exp {f} σ Γ) →
   subst-rho ρ M ≡ subst M ρ
 subst-equiv {ε} ρ M rewrite ι^Env₀-lemma ρ M = PEq.refl
 subst-equiv {Γ ∙ τ} ρ M
@@ -171,6 +171,88 @@ VCC-betaV : ∀ {Γ Δ} {σ τ} →
 VCC-betaV {Δ = ε} ρ M C = PEq.refl
 VCC-betaV {Δ = Δ ∙ τ}  ρ M C =
   VCC-betaV (suc ρ) M ((`λ C) `$ (`exp (Ren₀ *-Var (zero ρ))))
+
+-- VCCs closed under renaming
+
+renC : ∀ {f} {Γ Δ Δ'} {σ τ} → VCC⟪ Γ ⊢ σ ⟫ {f} τ Δ → Δ ⊆ Δ' →
+  VCC⟪ Γ ⊢ σ ⟫ {f} τ Δ'
+renC (`λ M) ρ = `λ (renC M (ext₀^Var ρ))
+renC (`exp M) ρ = `exp (ρ *-Var M)
+renC ⟪- r -⟫ ρ = ⟪- trans^Var r ρ -⟫
+renC (`val P) = `val ∘ (renC P)
+renC (F `$ A) ρ = (renC F ρ) `$ (renC A ρ)
+renC (`if B L R) ρ = `if (renC B ρ) (renC L ρ) (renC R ρ)
+renC (`let M N) ρ = `let (renC M ρ) (renC N (ext₀^Var ρ))
+
+-- lemma33 but for renamings
+
+lemma33-ren : ∀ {f} {Γ Δ Ξ} {σ} → (r : Δ ⊆ Ξ) → (r' : Γ ⊆ Δ) →
+  (E : Exp {f} σ Γ) → (trans^Var r' r *-Var E) ≡ (r *-Var (r' *-Var E))
+lemma33-ren r r' (`var v) = PEq.refl
+lemma33-ren r r' (`b b)  = PEq.refl
+lemma33-ren r r' (`λ M)  =
+  PEq.cong λλ (lemma33-ren (ext₀^Var r) (ext₀^Var r') M)
+lemma33-ren r r' (`val V) rewrite lemma33-ren r r' V = PEq.refl
+lemma33-ren r r' (f `$ a) rewrite lemma33-ren r r' f | lemma33-ren r r' a =
+  PEq.refl
+lemma33-ren r r' (`if B L R) rewrite lemma33-ren r r' B | lemma33-ren r r' L |
+                                 lemma33-ren r r' R = PEq.refl
+lemma33-ren r r'  (`let M N) rewrite lemma33-ren r r' M =
+  PEq.cong (`let _) (lemma33-ren (ext₀^Var r) (ext₀^Var r') N)
+
+
+-- commutation between renaming and instantiation
+
+_renC⟪_⟫_ : ∀ {f} {τ υ} {Γ Δ Ξ}
+                (C : VCC⟪ Γ ⊢ τ ⟫ {f} υ Δ) (T : Trm τ Γ) (r : Δ ⊆ Ξ) →
+ (renC C r) ⟪ T ⟫VCC ≡ (r *-Var (C ⟪ T ⟫VCC))
+
+`exp E       renC⟪ T ⟫ r = PEq.refl
+`λ M         renC⟪ T ⟫ r -- = PEq.cong `λ (M renC⟪ T ⟫ (ext₀^Env r))
+ rewrite M renC⟪ T ⟫ (ext₀^Var r)
+                           = PEq.refl
+
+⟪- r' -⟫     renC⟪ T ⟫ r = lemma33-ren r r' T
+`val C         renC⟪ T ⟫ r
+ rewrite C renC⟪ T ⟫ r   = PEq.refl
+(F `$ A)     renC⟪ T ⟫ r
+ rewrite F renC⟪ T ⟫ r | A renC⟪ T ⟫ r
+                           = PEq.refl
+`if B L R    renC⟪ T ⟫ r
+ rewrite B renC⟪ T ⟫ r | L renC⟪ T ⟫ r | R renC⟪ T ⟫ r
+                           = PEq.refl
+`let P Q     renC⟪ T ⟫ r
+ rewrite P renC⟪ T ⟫ r | Q renC⟪ T ⟫ (ext₀^Var r) = PEq.refl
+
+
+-- composition of contexts
+
+_⟪∘⟫VCC_ : ∀ {f} {Γ Δ Ξ} {σ τ υ}
+          (P : VCC⟪ Δ ⊢ σ ⟫ {f} τ Ξ)
+          (Q : VCC⟪ Γ ⊢ υ ⟫ {`trm} σ Δ) → VCC⟪ Γ ⊢ υ ⟫ {f} τ Ξ
+`exp E     ⟪∘⟫VCC Q = `exp E
+`λ M       ⟪∘⟫VCC Q = `λ (M ⟪∘⟫VCC Q)
+⟪- r -⟫    ⟪∘⟫VCC Q =  renC Q r
+`val P     ⟪∘⟫VCC Q = `val (P ⟪∘⟫VCC Q)
+(F `$ A)   ⟪∘⟫VCC Q = F ⟪∘⟫VCC Q `$ A ⟪∘⟫VCC Q
+`if B L R  ⟪∘⟫VCC Q = `if (B ⟪∘⟫VCC Q) (L ⟪∘⟫VCC Q) (R ⟪∘⟫VCC Q)
+`let P R   ⟪∘⟫VCC Q = `let (P ⟪∘⟫VCC Q) (R ⟪∘⟫VCC Q)
+
+-- commutation between composition and instantiation
+
+_⟪∘_⟫VCC_ : ∀ {f} {Γ Δ Ξ} {σ τ υ} (P : VCC⟪ Δ ⊢ σ ⟫ {f} τ Ξ) (T : Trm υ Γ) →
+       (Q : VCC⟪ Γ ⊢ υ ⟫ {`trm} σ Δ) →
+       (P ⟪∘⟫VCC Q) ⟪ T ⟫VCC ≡ P ⟪ Q ⟪ T ⟫VCC ⟫VCC
+
+`exp E    ⟪∘ T ⟫VCC Q = PEq.refl
+`λ M      ⟪∘ T ⟫VCC Q rewrite M ⟪∘ T ⟫VCC Q = PEq.refl
+
+⟪- r -⟫    ⟪∘ T ⟫VCC Q = Q renC⟪ T ⟫ r
+`val P    ⟪∘ T ⟫VCC Q rewrite P ⟪∘ T ⟫VCC Q = PEq.refl
+(F `$ A)  ⟪∘ T ⟫VCC Q rewrite F ⟪∘ T ⟫VCC Q | A ⟪∘ T ⟫VCC Q = PEq.refl
+`if B L R ⟪∘ T ⟫VCC Q
+  rewrite B ⟪∘ T ⟫VCC Q | L ⟪∘ T ⟫VCC Q | R ⟪∘ T ⟫VCC Q = PEq.refl
+`let P R  ⟪∘ T ⟫VCC Q rewrite P ⟪∘ T ⟫VCC Q | R ⟪∘ T ⟫VCC Q = PEq.refl
 
 -- Ground simulation
 -- The most boring relation of them all, but which ensures termination.

@@ -412,16 +412,6 @@ weak-sub : ∀ {f} {Γ} {σ τ} → (V : Val τ Γ) → (E : Exp {f} σ Γ) →
   (weak *-Var E) ⟨ V /var₀⟩ ≡ E
 weak-sub V E = ren-sub E weak (ι^Env `∙ V) (λ v → PEq.refl)
 
-renC : ∀ {f} {Γ Δ Δ'} {σ τ} → VCC⟪ Γ ⊢ σ ⟫ {f} τ Δ → Δ ⊆ Δ' →
-  VCC⟪ Γ ⊢ σ ⟫ {f} τ Δ'
-renC (`λ M) ρ = `λ (renC M (ext₀^Var ρ))
-renC (`exp M) ρ = `exp (ρ *-Var M)
-renC ⟪- r -⟫ ρ = ⟪- trans^Var r ρ -⟫
-renC (`val P) = `val ∘ (renC P)
-renC (F `$ A) ρ = (renC F ρ) `$ (renC A ρ)
-renC (`if B L R) ρ = `if (renC B ρ) (renC L ρ) (renC R ρ)
-renC (`let M N) ρ = `let (renC M ρ) (renC N (ext₀^Var ρ))
-
 swp : ∀ {Γ} {σ τ} → Γ ∙ σ ∙ τ ⊆ Γ ∙ τ ∙ σ
 var swp ze = su ze
 var swp (su ze) = ze
@@ -501,15 +491,69 @@ subst-inst-comm (`if B L R) V M r1 r2
           subst-inst-comm R V M r1 r2 = PEq.refl
 subst-inst-comm (`let P Q) V M r1 r2 = {!!}
 
+-- Γ-extended version of the above
+_#_ : Cx → Cx → Cx
+--ε # Δ = Δ
+Γ # ε = Γ
+Γ # (Δ ∙ τ) = (Γ ∙ τ) # Δ
+
+push-hash : ∀ {Γ Δ} → (Ξ : Cx) → Γ ⊨ Δ → Ξ # Γ ⊨ Ξ # Δ
+push-hash ε ρ = ρ
+push-hash (Ξ ∙ τ) ρ = ext₀^Env (push Ξ ρ)
+
+
+barCx : ∀ {f} {Γ Δ} {τ ω} → (Ξ : Cx) → VCC⟪ Γ ⊢ ω ⟫ {f} τ Δ →
+  VCC⟪ Γ # Ξ ⊢ ω ⟫ {f} τ (Δ # Ξ)
+barCx ε C = C
+barCx (Ξ ∙ τ) C = barCx Ξ (barC {σ = τ} C)
+
+subst⟪-⟫ : ∀ {f} {Γ Δ Ξ} {σ τ}
+  (P : VCC⟪ Γ ⊢ σ ⟫ {f} τ Δ) → (M : Trm σ (Γ # Ξ)) (ρ : Env₀ (ε # Ξ)) →
+  subst ((barCx Ξ P) ⟪ M ⟫VCC) ρ ≡ P ⟪ subst M ρ ⟫VCC
+subst⟪-⟫ {Ξ = ε} P M ρ rewrite ι^Env₀-lemma ρ (P ⟪ M ⟫VCC) |
+                               ι^Env₀-lemma ρ M = PEq.refl
+subst⟪-⟫ {Ξ = Ξ ∙ τ} P M ρ
+  rewrite PEq.sym (subst-equiv ρ M) |
+          PEq.sym (subst-equiv ρ (barCx Ξ (barC P) ⟪ M ⟫VCC))
+--  with subst⟪-⟫ (barC P) M (suc ρ)
+ = {!!}
+
+
+{-
+appT₀ : ∀ {Γ} {σ τ} → (ρ : Γ ⊨ ε) (M : Exp (σ `→ τ) Γ) (U : Val₀ σ) → Trm₀ τ
+appT₀ ρ M U = appT (subst M ρ) U
+-}
+
+appP : ∀ {σ τ} → (U : Val₀ σ) → VCC⟪ ε ⊢ σ `→ τ ⟫ τ ε
+appP U = `let ⟪- refl^Var -⟫ (`exp (Val→Spine U))
+
+{-
+sim-appT₀ : ∀ {Γ} {σ τ} {M N : Exp (σ `→ τ) Γ} → (ρ : Γ ⊨ ε) → vcc-sim M N →
+  (U : Val₀ σ) → vcc-sim₀ (appT₀ ρ M U) (appT₀ ρ N U)
+sim-appT₀ {ε} {M = M} {N = N} ρ sMN  U
+  rewrite ι^Env₀-lemma ρ M | ι^Env₀-lemma ρ N = {!sMN!}
+sim-appT₀ {Γ ∙ τ} {M = M} {N = N} ρ sMN U P = {!sMN ...!}
+-}
+
 lemma-2-6O-VCC : ∀ {Γ} {τ} {M N} → vcc-sim M N →
   app-cxt-sim {`trm} {Γ} {τ} M N
 lemma-2-6O-VCC {Γ} {`b β} = vcc-sim→sim^T
-lemma-2-6O-VCC {Γ} {σ `→ τ} {M} {N} sMN ρ = (vcc-sim→sim^T sMN ρ) , {!!}
+lemma-2-6O-VCC {Γ} {σ `→ τ} {M} {N} sMN ρ =
+  (vcc-sim→sim^T sMN ρ) , lemma2-6-appT₀
  where
   -- basic applicative setting, relative to the valuation ρ
   appT₀ : (M : Exp (σ `→ τ) Γ) (U : Val₀ σ) → Trm₀ τ
   appT₀ M U = appT (subst M ρ) U
 
+  sim-appT₀ : ∀ U → vcc-sim₀ (appT₀ M U) (appT₀ N U)
+  sim-appT₀ U P = {!sMN (P ⟪∘⟫VCC appP U)!}
+--with sMN (P ⟪∘⟫ appP₀ U)
+--  ... | prf rewrite P ⟪∘ M ⟫ appP₀ U | P ⟪∘ N ⟫ appP₀ U = prf
+  lemma2-6-appT₀ : ∀ U → app-cxt-sim₀ (appT₀ M U) (appT₀ N U)
+  lemma2-6-appT₀ U
+    with lemma-2-6O-VCC {Γ = ε} {τ = τ} (sim-appT₀ U) ι^Env
+  ... | prf rewrite ι^Env₀ (appT₀ M U) | ι^Env₀ (appT₀ N U) = prf
+{-
 
   appP : ∀ {Γ} {σ τ} → (U : Val σ Γ) → VCC⟪ Γ ⊢ σ `→ τ ⟫ τ Γ
   appP U = `let ⟪- refl^Var -⟫ (`exp (Val→Spine U))
@@ -518,17 +562,28 @@ lemma-2-6O-VCC {Γ} {σ `→ τ} {M} {N} sMN ρ = (vcc-sim→sim^T sMN ρ) , {!!
     (VCC-sub (appP U) ρ ⟪ M ⟫VCC) →βV subst ((appP U) ⟪ M ⟫VCC) ρ
   app-βV U M rewrite VCC-betaV ρ M (appP U) = {!!}
 
-  -- hence vcc-sim₀ is closed under appT₀, modulo rewrites
+  VCC-make : ∀ {Γ} {σ τ} → Γ ⊨ ε → VCC⟪ Γ ⊢ σ ⟫ τ ε
+  VCC-make {Γ} ρ = {!!}
+
+  -- hence ivcc-sim₀ is closed under appT₀, modulo rewrites
   sim-appT₀ : ∀ U → vcc-sim₀ (appT₀ M U) (appT₀ N U)
-  sim-appT₀ U P = {!P ⟪ (appP U) ⟪ subst M ρ ⟫VCC ⟫VCC!}
- -- with
- --  ... | prf rewrite P ⟪∘ M ⟫VCC appP₀ U = {!!}
-
-  -- and hence likewise, finally, app-cxt-sim₀ itself,
-  -- by IH at type τ (via dummy valuation ι^Env, more rewrites)
-  lemma2-6-appT₀ : ∀ U → app-cxt-sim₀ (appT₀ M U) (appT₀ N U)
-  lemma2-6-appT₀ U = {!lemma-2-6O-VCC!}
-
+  sim-appT₀ U P = {!!}
+-}
+{-
+    with sMN (VCC-sub ρ ((barC {ε} P Γ) ⟪∘⟫VCC (appP (Ren₀ *-Var U))))
+  ... | prf with VCC-sub-βV ρ ((barC {ε} P Γ) ⟪∘⟫VCC (appP (Ren₀ *-Var U)))
+  ... | betaV rewrite betaV-Trm M | betaV-Trm N
+          with (λ M → (barC {ε} P Γ) ⟪∘ M ⟫VCC appP (Ren₀ *-Var U))
+  ... | comp-inst rewrite comp-inst M | comp-inst N with
+    (λ M → βV-subst₀ ρ (barC {ε} P Γ ⟪ appP (Ren₀ *-Var U) ⟪ M ⟫IVCC ⟫IVCC))
+  ... | sub-red with lemma-2-10i-βV (sub-red M)
+                                   (lemma-2-10ii-βV prf (sub-red N))
+  ... | red-sim with
+    (λ M → subst-equiv ρ (barC {ε} P Γ ⟪ appP (Ren₀ *-Var U) ⟪ M ⟫IVCC ⟫IVCC))
+  ... | sub-eq rewrite sub-eq M | sub-eq N |
+                       subst-inst-commute P U M ρ |
+                       subst-inst-commute P U N ρ = red-sim
+-}
 -- Now, Lemma 2.18, done using Ian's argument.
 
 lemma-2-18-aux : ∀ {f} {Γ Δ} {τ υ} (P : Cxt⟪ Γ ⊢ τ ⟫ {f} υ Δ) →
