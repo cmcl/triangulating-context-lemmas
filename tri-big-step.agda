@@ -497,26 +497,30 @@ _#_ : Cx → Cx → Cx
 Γ # ε = Γ
 Γ # (Δ ∙ τ) = (Γ ∙ τ) # Δ
 
-push-hash : ∀ {Γ Δ} → (Ξ : Cx) → Γ ⊨ Δ → Ξ # Γ ⊨ Ξ # Δ
-push-hash ε ρ = ρ
-push-hash (Ξ ∙ τ) ρ = ext₀^Env (push Ξ ρ)
+emp-,, : (Γ : Cx) → ε ,, Γ ≡ Γ
+emp-,, ε = PEq.refl
+emp-,, (Γ ∙ τ) rewrite emp-,, Γ = PEq.refl
 
+push-bwd : ∀ {Γ} → (Δ : Cx) → Γ ⊨ ε → Δ ,, Γ ⊨ Δ
+push-bwd {ε} Δ ρ = ι^Env
+push-bwd {Γ ∙ τ} Δ ρ = push-bwd Δ (suc ρ) `∙ (Ren₀ *-Var var ρ ze)
 
 barCx : ∀ {f} {Γ Δ} {τ ω} → (Ξ : Cx) → VCC⟪ Γ ⊢ ω ⟫ {f} τ Δ →
-  VCC⟪ Γ # Ξ ⊢ ω ⟫ {f} τ (Δ # Ξ)
+  VCC⟪ Γ ,, Ξ ⊢ ω ⟫ {f} τ (Δ ,, Ξ)
 barCx ε C = C
-barCx (Ξ ∙ τ) C = barCx Ξ (barC {σ = τ} C)
+barCx (Ξ ∙ τ) C = barC {σ = τ} (barCx Ξ C)
 
 subst⟪-⟫ : ∀ {f} {Γ Δ Ξ} {σ τ}
-  (P : VCC⟪ Γ ⊢ σ ⟫ {f} τ Δ) → (M : Trm σ (Γ # Ξ)) (ρ : Env₀ (ε # Ξ)) →
-  subst ((barCx Ξ P) ⟪ M ⟫VCC) ρ ≡ P ⟪ subst M ρ ⟫VCC
-subst⟪-⟫ {Ξ = ε} P M ρ rewrite ι^Env₀-lemma ρ (P ⟪ M ⟫VCC) |
-                               ι^Env₀-lemma ρ M = PEq.refl
-subst⟪-⟫ {Ξ = Ξ ∙ τ} P M ρ
-  rewrite PEq.sym (subst-equiv ρ M) |
-          PEq.sym (subst-equiv ρ (barCx Ξ (barC P) ⟪ M ⟫VCC))
---  with subst⟪-⟫ (barC P) M (suc ρ)
- = {!!}
+  (P : VCC⟪ Γ ⊢ σ ⟫ {f} τ Δ) → (M : Trm σ (Γ ,, Ξ)) (ρ : Env₀ Ξ) →
+  subst ((barCx Ξ P) ⟪ M ⟫VCC) (push-bwd Δ ρ) ≡
+    P ⟪ subst M (push-bwd Γ ρ) ⟫VCC
+subst⟪-⟫ {Ξ = ε} P M ρ
+  rewrite ι^Env-lemma (P ⟪ M ⟫VCC) | ι^Env-lemma M = PEq.refl
+subst⟪-⟫ {f} {Γ} {Δ} {Ξ ∙ τ} P M ρ
+ rewrite lemma36 (barC (barCx Ξ P) ⟪ M ⟫VCC) (push-bwd Δ (suc ρ)) (var ρ ze) |
+         subst-inst-comm (barCx Ξ P) (var ρ ze) M Ren₀ Ren₀
+ with subst⟪-⟫ {Ξ = Ξ} P (M ⟨ Ren₀ *-Var (var ρ ze) /var₀⟩) (suc ρ)
+... | ih rewrite lemma36 M (push-bwd Γ (suc ρ)) (var ρ ze)= ih
 
 
 {-

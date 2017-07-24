@@ -112,6 +112,10 @@ lemma35 : ∀ {f} {Γ} {σ τ} → (E : (σ ⊢ Exp {f} τ) Γ) → (ρ : Γ ⊨
  subst E (ρ `∙ U) ≡ subst (E ⟨ Ren₀ *-Var U /var₀⟩) ρ
 lemma35 E ρ U = lemma33 ρ (ι^Env `∙ (Ren₀ *-Var U)) E
 
+lemma36 : ∀ {f} {Γ Δ} {σ τ} → (E : (σ ⊢ Exp {f} τ) Γ) → (ρ : Γ ⊨ Δ) → ∀ U →
+ subst E (ρ `∙ (Ren₀ *-Var U)) ≡ subst (E ⟨ Ren₀ *-Var U /var₀⟩) ρ
+lemma36 E ρ U = lemma33 ρ (ι^Env `∙ (Ren₀ *-Var U)) E
+
 subst-suc : ∀ {f} {Γ} {σ τ} → (ρ : Γ ∙ τ ⊨ ε) → (M : Exp {f} σ (Γ ∙ τ)) →
   subst (M ⟨ Ren₀ *-Var zero ρ /var₀⟩) (suc ρ) ≡ subst M (suc ρ `∙ zero ρ)
 subst-suc ρ M rewrite lemma35 M (suc ρ) (zero ρ) = PEq.refl
