@@ -541,9 +541,12 @@ redVCC : ∀ {f} {Γ} {σ τ ν} → VCC⟪ ε ,, Γ ⊢ σ `→ τ ⟫ {f} ν (
 redVCC {f} {Γ} P with ε ,, Γ | emp-,, Γ
 redVCC P | Γ | PEq.refl = P
 
-ren-sub-prop : ∀ {f} {Γ} {σ τ} → (U : Exp₀ {f} τ) → (ρ : Γ ⊨ ε) →
-  subst (weak {σ = σ} *-Var (Ren₀ *-Var U)) (ext₀^Env ρ) ≡ (weak *-Var U)
-ren-sub-prop {Γ} U ρ = {!!}
+ren-sub-prop : ∀ {f} {Γ Δ Ξ} {σ} →
+  (E : Exp {f} σ Γ) → (r : ∀ {Γ} → Γ ⊆ Δ) →
+  (ρ : Δ ⊨ Ξ) → (ρ' : Γ ⊨ Ξ) →
+  (∀ {τ} v → var ρ {τ} (var r v) ≡ (r *-Var (var ρ' v))) →
+  subst (r *-Var E) ρ ≡ (r *-Var (subst E ρ'))
+ren-sub-prop E r ρ ρ' = ?
 
 sim-appT₀ : ∀ {Γ} {σ τ} {M N : Exp (σ `→ τ) Γ} → (ρ : Γ ⊨ ε) → vcc-sim M N →
   (U : Val₀ σ) → vcc-sim₀ (appT₀ ρ M U) (appT₀ ρ N U)
@@ -557,7 +560,7 @@ sim-appT₀ {Γ} {σ} {τ} {M} {N} ρ sMN U {ν} P
 ... | βV→subst with lemma-2-10i-βV (βV→subst M)
                                    (lemma-2-10ii-βV prf (βV→subst N))
 ... | subst-sim rewrite subst⟪-⟫ P (appP U ⟪ M ⟫VCC) ρ |
-                        ι^Var-lemma M | ι^Var-lemma N = {!!}
+                        ι^Var-lemma M | ι^Var-lemma N = {!ren-sub U Ren₀ ρ!}
 
 lemma-2-6O-VCC : ∀ {Γ} {τ} {M N} → vcc-sim M N →
   app-cxt-sim {`trm} {Γ} {τ} M N
