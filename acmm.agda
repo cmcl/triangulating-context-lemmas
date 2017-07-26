@@ -106,6 +106,9 @@ inc *-Var t = sem inc t where open Eval Renaming
 th^Val : ∀ {σ} → Thinnable (Val σ)
 th^Val t ρ = ρ *-Var t
 
+ren : ∀ {f} {Γ Δ} {σ} → Exp {f} σ Γ → Γ ⊆ Δ → Exp {f} σ Δ
+ren E r = r *-Var E
+
 -- Syntactic Sugar
 
 -- We need spine applications. The right way to formalise this is, as ever, on
