@@ -380,6 +380,26 @@ app⟪-⟫ U = `let ⟪- refl^Var -⟫ (`exp (Val→Spine U))
   (ext₀^Env-ext₀ {ρ = ext₀^Env ι^Env} (ext₀^Env-ext₀ {ρ = ι^Env}
     (λ v → PEq.refl)))
 
+ext₀^Var-ext : ∀ {Γ Δ} {σ} → {r r' : Γ ⊆ Δ} →
+                 (∀ {τ} v → var r {τ} v ≡ var r' v) →
+ ∀ {τ} v → var (ext₀^Var {σ} {Γ} r) {τ} v ≡ var (ext₀^Var r') v
+ext₀^Var-ext {Γ} {Δ} {σ} {r} {r'} eq =
+  [ P ][ PEq.refl ,,,  PEq.cong su ∘ eq ]
+ where P = λ {τ} v → var (ext₀^Var {σ} {Γ} r) {τ} v ≡ var (ext₀^Var r') v
+
+ren-ext : ∀ {f} {Γ Δ} {σ} → (E : Exp {f} σ Γ) →
+ {r r' : Γ ⊆ Δ} → (∀ {τ} v → var r {τ} v ≡ var r' v) →
+ ren E r ≡ ren E r'
+ren-ext (`var v) prf = PEq.cong `var (prf v)
+ren-ext (`b b) prf = PEq.refl
+ren-ext (`λ M) prf rewrite ren-ext M (ext₀^Var-ext prf) = PEq.refl
+ren-ext (`val M) prf rewrite ren-ext M prf = PEq.refl
+ren-ext (F `$ A) prf rewrite ren-ext F prf | ren-ext A prf = PEq.refl
+ren-ext (`if B L R) prf
+  rewrite ren-ext B prf | ren-ext L prf | ren-ext R prf = PEq.refl
+ren-ext (`let M N) prf
+  rewrite ren-ext M prf | ren-ext N (ext₀^Var-ext prf) = PEq.refl
+
 -- The same proof as for ext₀^Env-ext₀ but I cannot think how to generalise
 -- the statement to encompass both.
 ext₀^Env^Var-ext₀ : ∀ {Γ Δ} {σ} → {r : Γ ⊆ Δ} → {ρ : Δ ⊨ Γ} →
@@ -412,6 +432,46 @@ weak-sub : ∀ {f} {Γ} {σ τ} → (V : Val τ Γ) → (E : Exp {f} σ Γ) →
   (weak *-Var E) ⟨ V /var₀⟩ ≡ E
 weak-sub V E = ren-sub E weak (ι^Env `∙ V) (λ v → PEq.refl)
 
+weak-ext₀^Var-comm : ∀ {Γ Δ} {σ} {r : Γ ⊆ Δ} →
+ ∀ {τ} v → var weak {τ} (var r v) ≡ var (ext₀^Var {σ} r) (var weak v)
+weak-ext₀^Var-comm v = PEq.refl
+
+ext₀^Env-ext^Var : ∀ {Γ Δ Ξ Ω} {σ}
+  {r : Γ ⊆ Δ} {r' : Ω ⊆ Ξ} {ρ : Δ ⊨ Ξ} {ρ' : Γ ⊨ Ω} →
+  (∀ {τ} v → var ρ {τ} (var r v) ≡ (r' *-Var (var ρ' v))) →
+ ∀ {τ} v → var (ext₀^Env {σ} ρ) {τ}
+              (var (ext₀^Var r) v) ≡ (ext₀^Var r' *-Var (var (ext₀^Env ρ') v))
+ext₀^Env-ext^Var eq ze = PEq.refl
+ext₀^Env-ext^Var {σ = σ} {r' = r'} {ρ' = ρ'} eq (su v)
+  with (PEq.cong (weak {σ = σ} *-Var_) ∘ eq) v
+... | H rewrite PEq.sym (lemma33-ren (ext₀^Var {σ} r') weak (var ρ' v)) =
+  PEq.trans H (PEq.trans (PEq.sym (lemma33-ren weak r' (var ρ' v)))
+                         (ren-ext (var ρ' v) (weak-ext₀^Var-comm {r = r'})))
+
+ren-sub-prop : ∀ {f} {Γ Δ Ξ Ω} {σ} →
+  (E : Exp {f} σ Γ) → (r : Γ ⊆ Δ) → (r' : Ω ⊆ Ξ)
+  (ρ : Δ ⊨ Ξ) → (ρ' : Γ ⊨ Ω) →
+  (∀ {τ} v → var ρ {τ} (var r v) ≡ (r' *-Var (var ρ' v))) →
+  subst (r *-Var E) ρ ≡ (r' *-Var (subst E ρ'))
+ren-sub-prop (`var x) r r' ρ ρ' prf = prf x
+ren-sub-prop (`b b) r r' ρ ρ' prf = PEq.refl
+ren-sub-prop (`λ M) r r' ρ ρ' prf
+  rewrite ren-sub-prop M (ext₀^Var r) (ext₀^Var r') (ext₀^Env ρ) (ext₀^Env ρ')
+                      (ext₀^Env-ext^Var {r = r} {r'} {ρ} {ρ'} prf) = PEq.refl
+ren-sub-prop (`val M) r r' ρ ρ' prf
+  rewrite ren-sub-prop M r r' ρ ρ' prf = PEq.refl
+ren-sub-prop (F `$ A) r r' ρ ρ' prf
+  rewrite ren-sub-prop F r r' ρ ρ' prf |
+          ren-sub-prop A r r' ρ ρ' prf = PEq.refl
+ren-sub-prop (`if B L R) r r' ρ ρ' prf
+  rewrite ren-sub-prop B r r' ρ ρ' prf |
+          ren-sub-prop L r r' ρ ρ' prf |
+          ren-sub-prop R r r' ρ ρ' prf = PEq.refl
+ren-sub-prop (`let M N) r r' ρ ρ' prf
+  rewrite ren-sub-prop M r r' ρ ρ' prf |
+          ren-sub-prop N (ext₀^Var r) (ext₀^Var r') (ext₀^Env ρ) (ext₀^Env ρ')
+                      (ext₀^Env-ext^Var {r = r} {r'} {ρ} {ρ'} prf)= PEq.refl
+
 swp : ∀ {Γ} {σ τ} → Γ ∙ σ ∙ τ ⊆ Γ ∙ τ ∙ σ
 var swp ze = su ze
 var swp (su ze) = ze
@@ -426,26 +486,6 @@ barC (`val C) = `val (barC C)
 barC (F `$ A) = (barC F) `$ (barC A)
 barC (`if B L R) = `if (barC B) (barC L) (barC R)
 barC {σ = σ} (`let {ν} M N) = `let (barC M) (renC (barC N) swp)
-
-ext₀^Var-ext : ∀ {Γ Δ} {σ} → {r r' : Γ ⊆ Δ} →
-                 (∀ {τ} v → var r {τ} v ≡ var r' v) →
- ∀ {τ} v → var (ext₀^Var {σ} {Γ} r) {τ} v ≡ var (ext₀^Var r') v
-ext₀^Var-ext {Γ} {Δ} {σ} {r} {r'} eq =
-  [ P ][ PEq.refl ,,,  PEq.cong su ∘ eq ]
- where P = λ {τ} v → var (ext₀^Var {σ} {Γ} r) {τ} v ≡ var (ext₀^Var r') v
-
-ren-ext : ∀ {f} {Γ Δ} {σ} → (E : Exp {f} σ Γ) →
- {r r' : Γ ⊆ Δ} → (∀ {τ} v → var r {τ} v ≡ var r' v) →
- ren E r ≡ ren E r'
-ren-ext (`var v) prf = PEq.cong `var (prf v)
-ren-ext (`b b) prf = PEq.refl
-ren-ext (`λ M) prf rewrite ren-ext M (ext₀^Var-ext prf) = PEq.refl
-ren-ext (`val M) prf rewrite ren-ext M prf = PEq.refl
-ren-ext (F `$ A) prf rewrite ren-ext F prf | ren-ext A prf = PEq.refl
-ren-ext (`if B L R) prf
-  rewrite ren-ext B prf | ren-ext L prf | ren-ext R prf = PEq.refl
-ren-ext (`let M N) prf
-  rewrite ren-ext M prf | ren-ext N (ext₀^Var-ext prf) = PEq.refl
 
 renC-VCC : ∀ {f} {Γ Δ Ξ} {σ ω} → (P : VCC⟪ Ξ ⊢ σ ⟫ {f} ω Γ) → (M : Trm σ Ξ) →
  {r r' : Γ ⊆ Δ} → (∀ {τ} v → var r {τ} v ≡ var r' v) →
@@ -496,28 +536,49 @@ ren-perm-ext : ∀ {Δ Ξ} {σ τ} → (Δ ,, Ξ) ∙ σ ⊆ (Δ ∙ σ) ,, Ξ �
 ren-perm-ext r = trans^Var swp (ext₀^Var r)
 
 ren-bar : ∀ {f} {Γ Δ Ξ} {σ τ ω} →
-  (P : VCC⟪ Γ ⊢ σ ⟫ {f} τ (Δ ,, Ξ)) → (V : Val ω Δ) →
-  (M : Trm σ (Γ ∙ ω)) → (rV : Δ ⊆ Γ) →
+  (P : VCC⟪ Γ ⊢ σ ⟫ {f} τ (Δ ,, Ξ)) → (V : Val₀ ω) →
+  (M : Trm σ (Γ ∙ ω)) →
   (r : (Δ ,, Ξ) ∙ ω ⊆ Δ ∙ ω ,, Ξ) →
-  subst ((renC (barC P) r) ⟪ M ⟫VCC) (push Ξ (ι^Env `∙ V)) ≡
-    P ⟪ M ⟨ rV *-Var V /var₀⟩ ⟫VCC
-ren-bar {`val} {Γ} {Δ} {Ξ} {ω = ω} (`λ {ν} P) V M rV r
-  with ren-bar {Ξ = Ξ ∙ ν} P V M rV (ren-perm-ext {Δ} {Ξ} {ω} {ν} r)
+  subst ((renC (barC P) r) ⟪ M ⟫VCC) (push Ξ (ι^Env `∙ ren V Ren₀)) ≡
+    P ⟪ M ⟨ ren V Ren₀ /var₀⟩ ⟫VCC
+ren-bar {`val} {Γ} {Δ} {Ξ} {ω = ω} (`λ {ν} P) V M r
+  with ren-bar {Ξ = Ξ ∙ ν} P V M (ren-perm-ext {Δ} {Ξ} {ω} {ν} r)
 ... | ih rewrite ren-ren (barC P) M swp (ext₀^Var r) | ih = PEq.refl
-ren-bar (`exp x) V M rV r = {!!}
-ren-bar ⟪- x -⟫ V M rV r = {!!}
-ren-bar (`val P) V M rV r = {!!}
-ren-bar (P `$ P₁) V M rV r = {!!}
-ren-bar (`if P P₁ P₂) V M rV r = {!!}
-ren-bar (`let P x) V M rV r = {!!}
+ren-bar (`exp E) V M r = {!!}
+ren-bar ⟪- ρ -⟫ V M r = {!!}
+ren-bar {Ξ = Ξ} (`val P) V M r
+  rewrite ren-bar {Ξ = Ξ} P V M r = PEq.refl
+ren-bar {Ξ = Ξ} (F `$ A) V M r
+  rewrite ren-bar {Ξ = Ξ} F V M r | ren-bar {Ξ = Ξ} A V M r = PEq.refl
+ren-bar {Ξ = Ξ} (`if B L R) V M r
+  rewrite ren-bar {Ξ = Ξ} B V M r | ren-bar {Ξ = Ξ} L V M r |
+          ren-bar {Ξ = Ξ} R V M r = PEq.refl
+ren-bar {`trm} {Γ} {Δ} {Ξ} {ω = ω} (`let {ν} P Q) V M r
+  rewrite ren-bar {Ξ = Ξ} P V M r
+  with ren-bar {Ξ = Ξ ∙ ν} Q V M (ren-perm-ext {Δ} {Ξ} {ω} {ν} r)
+... | ih rewrite ren-ren (barC Q) M swp (ext₀^Var r) | ih = PEq.refl
+
+Ren₀-absorb : ∀ {Γ Δ} {r : Γ ⊆ Δ} →
+  ∀ {τ} v → var Ren₀ {τ} v ≡ var (trans^Var Ren₀ r) v
+Ren₀-absorb ()
+
+ι^Env-pop!-comm : ∀ {Γ Δ} {σ} → (r : Γ ⊆ Δ) → (V : Val₀ σ) →
+  ∀ {τ} v → var (ι^Env `∙ (Ren₀ *-Var V)) {τ} (var (pop! r) v) ≡
+                (r *-Var (var (ι^Env `∙ (Ren₀ *-Var V)) v))
+ι^Env-pop!-comm {Γ} {Δ} r V ze rewrite PEq.sym (lemma33-ren r Ren₀ V) =
+  ren-ext V (Ren₀-absorb {r = r})
+ι^Env-pop!-comm r V (su v) = PEq.refl
 
 subst-inst-comm : ∀ {f} {Γ Δ Ξ} {σ τ ω} →
-  (P : VCC⟪ Γ ⊢ σ ⟫ {f} τ Δ) → (V : Val ω Ξ) → (M : Trm σ (Γ ∙ ω))
+  (P : VCC⟪ Γ ⊢ σ ⟫ {f} τ Δ) → (V : Val₀ ω) → (M : Trm σ (Γ ∙ ω)) →
   (r1 : Ξ ⊆ Δ) → (r2 : Ξ ⊆ Γ) →
-  (barC P) ⟪ M ⟫VCC ⟨ r1 *-Var V /var₀⟩ ≡ P ⟪ M ⟨ r2 *-Var V /var₀⟩ ⟫VCC
-subst-inst-comm {ω = ω} (`λ P) V M r1 r2 = {!ren-bar {Ξ = ε} P (trans^Var r1 weak *-Var V) M!}
-subst-inst-comm (`exp E) V M r1 r2 = weak-sub (r1 *-Var V) E --
-subst-inst-comm ⟪- r -⟫ V M r1 r2 = {!!}
+  (barC P) ⟪ M ⟫VCC ⟨ Ren₀ *-Var V /var₀⟩ ≡ P ⟪ M ⟨ Ren₀ *-Var V /var₀⟩ ⟫VCC
+subst-inst-comm {ω = ω} (`λ {ν} P) V M r1 r2
+  rewrite ren-bar {Ξ = ε ∙ ν} P V M swp = PEq.refl
+subst-inst-comm (`exp E) V M r1 r2 = weak-sub (Ren₀ *-Var V) E --
+subst-inst-comm {`trm} {Γ} {Δ} ⟪- r -⟫ V M r1 r2 =
+  ren-sub-prop M (pop! r) r (ι^Env `∙ (Ren₀ *-Var V))
+                 (ι^Env `∙ (Ren₀ *-Var V)) (ι^Env-pop!-comm r V)
 subst-inst-comm (`val P) V M r1 r2
   rewrite subst-inst-comm P V M r1 r2 = PEq.refl
 subst-inst-comm (F `$ A) V M r1 r2
@@ -526,7 +587,9 @@ subst-inst-comm (F `$ A) V M r1 r2
 subst-inst-comm (`if B L R) V M r1 r2
   rewrite subst-inst-comm B V M r1 r2 | subst-inst-comm L V M r1 r2 |
           subst-inst-comm R V M r1 r2 = PEq.refl
-subst-inst-comm (`let P Q) V M r1 r2 = {!!}
+subst-inst-comm (`let {ν} P Q) V M r1 r2
+  rewrite subst-inst-comm P V M r1 r2 |
+          ren-bar {Ξ = ε ∙ ν} Q V M swp = PEq.refl
 
 -- Γ-extended version of the above
 _#_ : Cx → Cx → Cx
@@ -578,50 +641,11 @@ redVCC : ∀ {f} {Γ} {σ τ ν} → VCC⟪ ε ,, Γ ⊢ σ `→ τ ⟫ {f} ν (
 redVCC {f} {Γ} P with ε ,, Γ | emp-,, Γ
 redVCC P | Γ | PEq.refl = P
 
-weak-ext₀^Var-comm : ∀ {Γ Δ} {σ} {r : Γ ⊆ Δ} →
- ∀ {τ} v → var weak {τ} (var r v) ≡ var (ext₀^Var {σ} r) (var weak v)
-weak-ext₀^Var-comm v = PEq.refl
-
 -- ren-comm : ∀ {f} {Γ Δ Ω Ξ} {σ}
 --   {r : Γ ⊆ Δ} {r' : Ω ⊆ Ξ} {ρ : Δ ⊆ Ξ} {ρ' : Γ ⊆ Ω} →
 --   (E : Exp {f} σ Γ) → (∀ {τ} v → var ρ {τ} (var r v) ≡ var r' (var ρ' v)) →
 --  (ρ *-Var (r *-Var E)) ≡ (r' *-Var (ρ' *-Var E))
 
-ext₀^Env-ext^Var : ∀ {Γ Δ Ξ Ω} {σ}
-  {r : Γ ⊆ Δ} {r' : Ω ⊆ Ξ} {ρ : Δ ⊨ Ξ} {ρ' : Γ ⊨ Ω} →
-  (∀ {τ} v → var ρ {τ} (var r v) ≡ (r' *-Var (var ρ' v))) →
- ∀ {τ} v → var (ext₀^Env {σ} ρ) {τ}
-              (var (ext₀^Var r) v) ≡ (ext₀^Var r' *-Var (var (ext₀^Env ρ') v))
-ext₀^Env-ext^Var eq ze = PEq.refl
-ext₀^Env-ext^Var {σ = σ} {r' = r'} {ρ' = ρ'} eq (su v)
-  with (PEq.cong (weak {σ = σ} *-Var_) ∘ eq) v
-... | H rewrite PEq.sym (lemma33-ren (ext₀^Var {σ} r') weak (var ρ' v)) =
-  PEq.trans H (PEq.trans (PEq.sym (lemma33-ren weak r' (var ρ' v)))
-                         (ren-ext (var ρ' v) (weak-ext₀^Var-comm {r = r'})))
-
-ren-sub-prop : ∀ {f} {Γ Δ Ξ Ω} {σ} →
-  (E : Exp {f} σ Γ) → (r : Γ ⊆ Δ) → (r' : Ω ⊆ Ξ)
-  (ρ : Δ ⊨ Ξ) → (ρ' : Γ ⊨ Ω) →
-  (∀ {τ} v → var ρ {τ} (var r v) ≡ (r' *-Var (var ρ' v))) →
-  subst (r *-Var E) ρ ≡ (r' *-Var (subst E ρ'))
-ren-sub-prop (`var x) r r' ρ ρ' prf = prf x
-ren-sub-prop (`b b) r r' ρ ρ' prf = PEq.refl
-ren-sub-prop (`λ M) r r' ρ ρ' prf
-  rewrite ren-sub-prop M (ext₀^Var r) (ext₀^Var r') (ext₀^Env ρ) (ext₀^Env ρ')
-                      (ext₀^Env-ext^Var {r = r} {r'} {ρ} {ρ'} prf) = PEq.refl
-ren-sub-prop (`val M) r r' ρ ρ' prf
-  rewrite ren-sub-prop M r r' ρ ρ' prf = PEq.refl
-ren-sub-prop (F `$ A) r r' ρ ρ' prf
-  rewrite ren-sub-prop F r r' ρ ρ' prf |
-          ren-sub-prop A r r' ρ ρ' prf = PEq.refl
-ren-sub-prop (`if B L R) r r' ρ ρ' prf
-  rewrite ren-sub-prop B r r' ρ ρ' prf |
-          ren-sub-prop L r r' ρ ρ' prf |
-          ren-sub-prop R r r' ρ ρ' prf = PEq.refl
-ren-sub-prop (`let M N) r r' ρ ρ' prf
-  rewrite ren-sub-prop M r r' ρ ρ' prf |
-          ren-sub-prop N (ext₀^Var r) (ext₀^Var r') (ext₀^Env ρ) (ext₀^Env ρ')
-                      (ext₀^Env-ext^Var {r = r} {r'} {ρ} {ρ'} prf)= PEq.refl
 
 ext₀^Env-weak : ∀ {Γ Δ} {σ} (ρ : Γ ⊨ Δ) →
   ∀ {τ} v → var (ext₀^Env {σ} ρ) {τ} (var weak v) ≡ (weak *-Var (var ρ v))
