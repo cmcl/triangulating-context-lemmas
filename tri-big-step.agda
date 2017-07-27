@@ -427,22 +427,59 @@ barC (F `$ A) = (barC F) `$ (barC A)
 barC (`if B L R) = `if (barC B) (barC L) (barC R)
 barC {σ = σ} (`let {ν} M N) = `let (barC M) (renC (barC N) swp)
 
-renC-VCC : ∀ {f} {Γ Δ Ξ} {σ τ} → (P : VCC⟪ Γ ⊢ σ ⟫ {f} τ Δ) →
- {r r' : Δ ⊆ Ξ} → (∀ {τ} v → var r {τ} v ≡ var r' v) → renC P r ≡ renC P r'
-renC-VCC P eq = {!!}
+ext₀^Var-ext : ∀ {Γ Δ} {σ} → {r r' : Γ ⊆ Δ} →
+                 (∀ {τ} v → var r {τ} v ≡ var r' v) →
+ ∀ {τ} v → var (ext₀^Var {σ} {Γ} r) {τ} v ≡ var (ext₀^Var r') v
+ext₀^Var-ext {Γ} {Δ} {σ} {r} {r'} eq =
+  [ P ][ PEq.refl ,,,  PEq.cong su ∘ eq ]
+ where P = λ {τ} v → var (ext₀^Var {σ} {Γ} r) {τ} v ≡ var (ext₀^Var r') v
+
+ren-ext : ∀ {f} {Γ Δ} {σ} → (E : Exp {f} σ Γ) →
+ {r r' : Γ ⊆ Δ} → (∀ {τ} v → var r {τ} v ≡ var r' v) →
+ ren E r ≡ ren E r'
+ren-ext (`var v) prf = PEq.cong `var (prf v)
+ren-ext (`b b) prf = PEq.refl
+ren-ext (`λ M) prf rewrite ren-ext M (ext₀^Var-ext prf) = PEq.refl
+ren-ext (`val M) prf rewrite ren-ext M prf = PEq.refl
+ren-ext (F `$ A) prf rewrite ren-ext F prf | ren-ext A prf = PEq.refl
+ren-ext (`if B L R) prf
+  rewrite ren-ext B prf | ren-ext L prf | ren-ext R prf = PEq.refl
+ren-ext (`let M N) prf
+  rewrite ren-ext M prf | ren-ext N (ext₀^Var-ext prf) = PEq.refl
+
+renC-VCC : ∀ {f} {Γ Δ Ξ} {σ ω} → (P : VCC⟪ Ξ ⊢ σ ⟫ {f} ω Γ) → (M : Trm σ Ξ) →
+ {r r' : Γ ⊆ Δ} → (∀ {τ} v → var r {τ} v ≡ var r' v) →
+ renC P r ⟪ M ⟫VCC ≡ renC P r' ⟪ M ⟫VCC
+renC-VCC (`λ P) M eq rewrite renC-VCC P M (ext₀^Var-ext eq) = PEq.refl
+renC-VCC (`exp E) M eq = ren-ext E eq
+renC-VCC ⟪- ρ -⟫ M {r} {r'} eq
+  rewrite lemma33-ren r ρ M | lemma33-ren r' ρ M = ren-ext (ren M ρ) eq
+renC-VCC (`val P) M eq rewrite renC-VCC P M eq = PEq.refl
+renC-VCC (F `$ A) M eq rewrite renC-VCC F M eq | renC-VCC A M eq = PEq.refl
+renC-VCC (`if B L R) M eq
+  rewrite renC-VCC B M eq | renC-VCC L M eq | renC-VCC R M eq = PEq.refl
+renC-VCC (`let P Q) M eq rewrite renC-VCC P M eq |
+                                 renC-VCC Q M (ext₀^Var-ext eq) = PEq.refl
 
 ren-ren : ∀ {f} {Γ Δ Ξ Ω} {σ τ} →
-  (P : VCC⟪ Γ ⊢ σ ⟫ {f} τ Δ) → (r1 : Δ ⊆ Ξ) → (r2 : Ξ ⊆ Ω) →
-  renC (renC P r1) r2 ≡ renC P (trans^Var r1 r2)
-ren-ren (`λ P) r1 r2 with renC-VCC P (pop!-trans {inc₁ = r1} {inc₂ = r2})
+  (P : VCC⟪ Γ ⊢ σ ⟫ {f} τ Δ) → (M : Trm σ Γ) → (r : Δ ⊆ Ξ) → (r' : Ξ ⊆ Ω) →
+  renC (renC P r) r' ⟪ M ⟫VCC ≡ renC P (trans^Var r r') ⟪ M ⟫VCC
+ren-ren (`λ P) M r r' with renC-VCC P M (pop!-trans {inc₁ = r} {inc₂ = r'})
 ... | ren-eq rewrite ren-eq |
-                     ren-ren P (ext₀^Var r1) (ext₀^Var r2) = PEq.refl
-ren-ren (`exp x) r1 r2 = {!!}
-ren-ren ⟪- x -⟫ r1 r2 = {!!}
-ren-ren (`val P) r1 r2 = {!!}
-ren-ren (P `$ P₁) r1 r2 = {!!}
-ren-ren (`if P P₁ P₂) r1 r2 = {!!}
-ren-ren (`let P x) r1 r2 = {!!}
+                     ren-ren P M (ext₀^Var r) (ext₀^Var r') = PEq.refl
+ren-ren (`exp E) M r r' = PEq.sym (lemma33-ren r' r E)
+ren-ren ⟪- ρ -⟫ M r r' rewrite lemma33-ren (trans^Var r r') ρ M |
+                               lemma33-ren r' (trans^Var ρ r) M |
+                               lemma33-ren r' r (ren M ρ) |
+                               lemma33-ren r ρ M = PEq.refl
+ren-ren (`val P) M r r' rewrite ren-ren P M r r' = PEq.refl
+ren-ren (F `$ A) M r r' rewrite ren-ren F M r r' | ren-ren A M r r' = PEq.refl
+ren-ren (`if B L R) M r r'
+  rewrite ren-ren B M r r' | ren-ren L M r r' | ren-ren R M r r' = PEq.refl
+ren-ren (`let P Q) M r r' rewrite ren-ren P M r r'
+  with renC-VCC Q M (pop!-trans {inc₁ = r} {inc₂ = r'})
+... | ren-eq rewrite ren-eq |
+                     ren-ren Q M (ext₀^Var r) (ext₀^Var r') = PEq.refl
 
 infixl 7 _,,_
 
@@ -466,7 +503,7 @@ ren-bar : ∀ {f} {Γ Δ Ξ} {σ τ ω} →
     P ⟪ M ⟨ rV *-Var V /var₀⟩ ⟫VCC
 ren-bar {`val} {Γ} {Δ} {Ξ} {ω = ω} (`λ {ν} P) V M rV r
   with ren-bar {Ξ = Ξ ∙ ν} P V M rV (ren-perm-ext {Δ} {Ξ} {ω} {ν} r)
-... | ih rewrite ren-ren (barC P) swp (ext₀^Var r) | ih = PEq.refl
+... | ih rewrite ren-ren (barC P) M swp (ext₀^Var r) | ih = PEq.refl
 ren-bar (`exp x) V M rV r = {!!}
 ren-bar ⟪- x -⟫ V M rV r = {!!}
 ren-bar (`val P) V M rV r = {!!}
@@ -540,26 +577,6 @@ redVCC : ∀ {f} {Γ} {σ τ ν} → VCC⟪ ε ,, Γ ⊢ σ `→ τ ⟫ {f} ν (
   VCC⟪ Γ ⊢ σ `→ τ ⟫ {f} ν Γ
 redVCC {f} {Γ} P with ε ,, Γ | emp-,, Γ
 redVCC P | Γ | PEq.refl = P
-
-ext₀^Var-ext : ∀ {Γ Δ} {σ} → {r r' : Γ ⊆ Δ} →
-                 (∀ {τ} v → var r {τ} v ≡ var r' v) →
- ∀ {τ} v → var (ext₀^Var {σ} {Γ} r) {τ} v ≡ var (ext₀^Var r') v
-ext₀^Var-ext {Γ} {Δ} {σ} {r} {r'} eq =
-  [ P ][ PEq.refl ,,,  PEq.cong su ∘ eq ]
- where P = λ {τ} v → var (ext₀^Var {σ} {Γ} r) {τ} v ≡ var (ext₀^Var r') v
-
-ren-ext : ∀ {f} {Γ Δ} {σ} → (E : Exp {f} σ Γ) →
- {r r' : Γ ⊆ Δ} → (∀ {τ} v → var r {τ} v ≡ var r' v) →
- ren E r ≡ ren E r'
-ren-ext (`var v) prf = PEq.cong `var (prf v)
-ren-ext (`b b) prf = PEq.refl
-ren-ext (`λ M) prf rewrite ren-ext M (ext₀^Var-ext prf) = PEq.refl
-ren-ext (`val M) prf rewrite ren-ext M prf = PEq.refl
-ren-ext (F `$ A) prf rewrite ren-ext F prf | ren-ext A prf = PEq.refl
-ren-ext (`if B L R) prf
-  rewrite ren-ext B prf | ren-ext L prf | ren-ext R prf = PEq.refl
-ren-ext (`let M N) prf
-  rewrite ren-ext M prf | ren-ext N (ext₀^Var-ext prf) = PEq.refl
 
 weak-ext₀^Var-comm : ∀ {Γ Δ} {σ} {r : Γ ⊆ Δ} →
  ∀ {τ} v → var weak {τ} (var r v) ≡ var (ext₀^Var {σ} r) (var weak v)
