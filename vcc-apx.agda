@@ -58,8 +58,7 @@ _⟪_⟫VCC : ∀ {f} {Γ Δ} {σ τ}
 `let M N  ⟪ T ⟫VCC = `let (M ⟪ T ⟫VCC) (N ⟪ T ⟫VCC)
 
 Ren₀ : ∀ {Γ} → ε ⊆ Γ
-Ren₀ {ε} = refl^Var
-Ren₀ {Γ ∙ x} = trans^Var (Ren₀ {Γ}) weak
+var Ren₀ ()
 
 ext₀^Var-ext₀ : ∀ {Γ} {σ} → {ρ : Γ ⊆ Γ} → (∀ {τ} v → var ρ {τ} v ≡ v) →
  ∀ {τ} v → var (pop! {σ} {Γ} ρ) {τ} v ≡ v
