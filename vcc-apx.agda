@@ -297,3 +297,39 @@ vcc-sim₀ {f} = case f return (λ f → ∀ {υ} → Rel^E {f} {_} {ε} {υ})
   simT : GRel₀^T
   simV {τ} = _[ simT {τ} ]^V_
   simT     = vcc-sim {`trm} {ε}
+
+vcc-to-cxt : ∀ {f} {Γ Δ} {σ τ} → VCC⟪ Γ ⊢ σ ⟫ {f} τ Δ → Cxt⟪ Γ ⊢ σ ⟫ {f} τ Δ
+vcc-to-cxt (`λ M) = `λ (vcc-to-cxt M)
+vcc-to-cxt (`exp E) = `exp E
+vcc-to-cxt ⟪- r -⟫ = ⟪- r *-Env ι^Env -⟫
+vcc-to-cxt (`val P) = `val (vcc-to-cxt P)
+vcc-to-cxt (F `$ A) = (vcc-to-cxt F) `$ (vcc-to-cxt A)
+vcc-to-cxt (`if B L R) = `if (vcc-to-cxt B) (vcc-to-cxt L) (vcc-to-cxt R)
+vcc-to-cxt (`let P Q) = `let (vcc-to-cxt P) (vcc-to-cxt Q)
+
+subst-ren-trm : ∀ {f} {Γ Δ} {σ} → (r : Γ ⊆ Δ) → (E : Exp {f} σ Γ) →
+ subst E (r *-Env ι^Env) ≡ (r *-Var E)
+subst-ren-trm r (`var x) = PEq.refl
+subst-ren-trm r (`b b) = PEq.refl
+subst-ren-trm r (`λ M) rewrite subst-ren-trm (ext₀^Var r) M = {!PEq.refl!}
+subst-ren-trm r (`val x) = {!!}
+subst-ren-trm r (E `$ E₁) = {!!}
+subst-ren-trm r (`if E E₁ E₂) = {!!}
+subst-ren-trm r (`let E x) = {!!}
+
+VCC-Cxt⟪_⟫ : ∀ {f} {Γ Δ} {σ τ} → (M : Trm σ Γ) → (P : VCC⟪ Γ ⊢ σ ⟫ {f} τ Δ) →
+  (vcc-to-cxt P) ⟪ M ⟫ ≡ P ⟪ M ⟫VCC
+VCC-Cxt⟪ M ⟫ (`λ P) rewrite VCC-Cxt⟪ M ⟫ P = PEq.refl
+VCC-Cxt⟪ M ⟫ (`exp E) = PEq.refl
+VCC-Cxt⟪ M ⟫ ⟪- r -⟫ = subst-ren-trm r M
+VCC-Cxt⟪ M ⟫ (`val P) rewrite VCC-Cxt⟪ M ⟫ P = PEq.refl
+VCC-Cxt⟪ M ⟫ (F `$ A) rewrite VCC-Cxt⟪ M ⟫ F | VCC-Cxt⟪ M ⟫ A = PEq.refl
+VCC-Cxt⟪ M ⟫ (`if B L R)
+  rewrite VCC-Cxt⟪ M ⟫ B | VCC-Cxt⟪ M ⟫ L | VCC-Cxt⟪ M ⟫ R = PEq.refl
+VCC-Cxt⟪ M ⟫ (`let P Q) rewrite VCC-Cxt⟪ M ⟫ P | VCC-Cxt⟪ M ⟫ Q = PEq.refl
+
+-- VCC contexts are contained within VSCs
+
+cxt-sim→vcc-sim^T : ∀ {Γ} {τ} {M N} → cxt-sim M N → vcc-sim {`trm} {Γ} {τ} M N
+cxt-sim→vcc-sim^T {Γ} {τ} {M} {N} sMN P with sMN (vcc-to-cxt P)
+... | hyp rewrite VCC-Cxt⟪ M ⟫ P | VCC-Cxt⟪ N ⟫ P = hyp
