@@ -685,6 +685,10 @@ lemma-2-6O-VCC {Γ} {σ `→ τ} {M} {N} sMN ρ =
     with lemma-2-6O-VCC {Γ = ε} {τ = τ} (sim-appT₀ ρ sMN U) ι^Env
   ... | prf rewrite ι^Env₀ (appT₀ ρ M U) | ι^Env₀ (appT₀ ρ N U) = prf
 
+lemma-2-6-VCC : ∀ {τ} {M N} → vcc-sim₀ M N → app-cxt-sim₀ {`trm} {τ} M N
+lemma-2-6-VCC {τ} {M} {N} sMN with lemma-2-6O-VCC sMN ι^Env
+... | prf rewrite ι^Env₀ M | ι^Env₀ N = prf
+
 -- Now, Lemma 2.18, done using Ian's argument.
 
 lemma-2-18-aux : ∀ {f} {Γ Δ} {τ υ} (P : Cxt⟪ Γ ⊢ τ ⟫ {f} υ Δ) →
@@ -788,6 +792,10 @@ cxt-sim₀→app-cxt-sim₀^T : ∀ {τ} {M N : Trm₀ τ} →
   cxt-sim₀ M N → app-cxt-sim₀ M N
 cxt-sim₀→app-cxt-sim₀^T = lemma-2-6
 
+vcc-sim₀→app-cxt-sim₀^T : ∀ {τ} {M N : Trm₀ τ} →
+  vcc-sim₀ M N → app-cxt-sim₀ M N
+vcc-sim₀→app-cxt-sim₀^T = lemma-2-6-VCC
+
 app-cxt-sim₀→app-sim₀^T : ∀ {τ} {M N : Trm₀ τ} →
   app-cxt-sim₀ M N → app-sim₀^T {τ} M N
 app-cxt-sim₀→app-sim₀^T = lemma-2-11 {`trm}
@@ -808,6 +816,10 @@ log-sim₀→cxt-sim₀^T = lemma-2-18 {`trm}
 cxt-sim→app-cxt-sim^T : ∀ {Γ} {τ} {M N : Trm τ Γ} →
   cxt-sim M N → app-cxt-sim M N
 cxt-sim→app-cxt-sim^T = lemma-2-6O
+
+vcc-sim→app-cxt-sim^T : ∀ {Γ} {τ} {M N : Trm τ Γ} →
+  vcc-sim M N → app-cxt-sim M N
+vcc-sim→app-cxt-sim^T = lemma-2-6O-VCC
 
 -- ... but here is not enough!
 app-cxt-sim→app-sim^T : ∀ {Γ} {τ} {M N : Trm τ Γ} →
