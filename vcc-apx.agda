@@ -307,21 +307,40 @@ vcc-to-cxt (F `$ A) = (vcc-to-cxt F) `$ (vcc-to-cxt A)
 vcc-to-cxt (`if B L R) = `if (vcc-to-cxt B) (vcc-to-cxt L) (vcc-to-cxt R)
 vcc-to-cxt (`let P Q) = `let (vcc-to-cxt P) (vcc-to-cxt Q)
 
-subst-ren-trm : ∀ {f} {Γ Δ} {σ} → (r : Γ ⊆ Δ) → (E : Exp {f} σ Γ) →
- subst E (r *-Env ι^Env) ≡ (r *-Var E)
-subst-ren-trm r (`var x) = PEq.refl
-subst-ren-trm r (`b b) = PEq.refl
-subst-ren-trm r (`λ M) rewrite subst-ren-trm (ext₀^Var r) M = {!PEq.refl!}
-subst-ren-trm r (`val x) = {!!}
-subst-ren-trm r (E `$ E₁) = {!!}
-subst-ren-trm r (`if E E₁ E₂) = {!!}
-subst-ren-trm r (`let E x) = {!!}
+ext₀^Env-ext₀^Var : ∀ {Γ Δ} {σ} → {r : Γ ⊆ Δ} → {ρ : Γ ⊨ Δ} →
+  (∀ {τ} v → var ρ {τ} v ≡ `var (var r v)) →
+ ∀ {τ} v → var (ext₀^Env {σ} {Γ} ρ) {τ} v ≡ `var (var (ext₀^Var r) v)
+ext₀^Env-ext₀^Var {Γ} {Δ} {σ} {r} {ρ} eq =
+  [ P ][ PEq.refl ,,, (PEq.cong (weak *-Var_)) ∘ eq ]
+  where
+    P = λ {τ} v → var (ext₀^Env {σ} {Γ} ρ) {τ} v ≡ `var (var (ext₀^Var r) v)
+
+subst-ren-trm : ∀ {f} {Γ Δ} {σ} → {r : Γ ⊆ Δ} → {ρ : Γ ⊨ Δ} →
+  (E : Exp {f} σ Γ) → (prf : ∀ {τ} v → var ρ {τ} v ≡ `var (var r v)) → 
+ subst E ρ ≡ (r *-Var E)
+subst-ren-trm (`var v) prf = prf v
+subst-ren-trm (`b b) prf = PEq.refl
+subst-ren-trm (`λ M) prf
+  rewrite subst-ren-trm M (ext₀^Env-ext₀^Var prf) = PEq.refl
+subst-ren-trm (`val M) prf rewrite subst-ren-trm M prf = PEq.refl
+subst-ren-trm (F `$ A) prf
+  rewrite subst-ren-trm F prf | subst-ren-trm A prf = PEq.refl
+subst-ren-trm (`if B L R) prf
+  rewrite subst-ren-trm B prf | subst-ren-trm L prf |
+          subst-ren-trm R prf = PEq.refl
+subst-ren-trm (`let M N) prf
+  rewrite subst-ren-trm M prf |
+          subst-ren-trm N (ext₀^Env-ext₀^Var prf) = PEq.refl
+
+ren-to-sub : ∀ {Γ Δ} → (r : Γ ⊆ Δ) →
+  ∀ {τ} v → var (r *-Env ι^Env) {τ} v ≡ `var (var r v)
+ren-to-sub r v = PEq.refl
 
 VCC-Cxt⟪_⟫ : ∀ {f} {Γ Δ} {σ τ} → (M : Trm σ Γ) → (P : VCC⟪ Γ ⊢ σ ⟫ {f} τ Δ) →
   (vcc-to-cxt P) ⟪ M ⟫ ≡ P ⟪ M ⟫VCC
 VCC-Cxt⟪ M ⟫ (`λ P) rewrite VCC-Cxt⟪ M ⟫ P = PEq.refl
 VCC-Cxt⟪ M ⟫ (`exp E) = PEq.refl
-VCC-Cxt⟪ M ⟫ ⟪- r -⟫ = subst-ren-trm r M
+VCC-Cxt⟪ M ⟫ ⟪- r -⟫ = subst-ren-trm M (ren-to-sub r)
 VCC-Cxt⟪ M ⟫ (`val P) rewrite VCC-Cxt⟪ M ⟫ P = PEq.refl
 VCC-Cxt⟪ M ⟫ (F `$ A) rewrite VCC-Cxt⟪ M ⟫ F | VCC-Cxt⟪ M ⟫ A = PEq.refl
 VCC-Cxt⟪ M ⟫ (`if B L R)
@@ -333,3 +352,6 @@ VCC-Cxt⟪ M ⟫ (`let P Q) rewrite VCC-Cxt⟪ M ⟫ P | VCC-Cxt⟪ M ⟫ Q = PE
 cxt-sim→vcc-sim^T : ∀ {Γ} {τ} {M N} → cxt-sim M N → vcc-sim {`trm} {Γ} {τ} M N
 cxt-sim→vcc-sim^T {Γ} {τ} {M} {N} sMN P with sMN (vcc-to-cxt P)
 ... | hyp rewrite VCC-Cxt⟪ M ⟫ P | VCC-Cxt⟪ N ⟫ P = hyp
+
+cxt-sim₀→vcc-sim₀^T : ∀ {τ} {M N : Trm₀ τ} → cxt-sim₀ M N → vcc-sim₀ M N
+cxt-sim₀→vcc-sim₀^T = cxt-sim→vcc-sim^T {ε}

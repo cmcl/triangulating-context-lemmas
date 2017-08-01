@@ -835,3 +835,11 @@ app-sim→log-sim^T {Γ} {τ} {M} {N} = lemma-2-20O {Γ} {τ} {M} {N}
 log-sim→cxt-sim^T : ∀ {Γ} {τ} {M N : Trm τ Γ} →
   log-sim M N → cxt-sim M N
 log-sim→cxt-sim^T = lemma-2-18O
+
+-- VCC implies VSC
+
+vcc-sim→cxt-sim^T : ∀ {Γ} {τ} {M N} → vcc-sim M N → cxt-sim {`trm} {Γ} {τ} M N
+vcc-sim→cxt-sim^T {Γ} {τ} {M} {N} sMN with vcc-sim→app-cxt-sim^T sMN
+... | ac-sim with app-cxt-sim→app-sim^T {Γ} {τ} {M} {N} ac-sim
+... | ap-sim with app-sim→log-sim^T {Γ} {τ} {M} {N} ap-sim
+... | lo-sim = log-sim→cxt-sim^T lo-sim
