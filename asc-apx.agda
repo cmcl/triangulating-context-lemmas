@@ -18,8 +18,8 @@ open import big-step-prop
 -- Contexts; contextual equivalence; the intricate stuff
 infixr 20 ⟪-_-⟫
 infixr 20 _⟪_⟫ASC
--- infixr 20 _⟪∘⟫_
--- infixr 20 _⟪∘_⟫_
+infixr 20 _⟪∘⟫ASC_
+infixr 20 _⟪∘_⟫ASC_
 infixr 20 ASC⟪_⊢_⟫
 
 infixl 5 _`*_
@@ -44,59 +44,31 @@ substASC : ∀ {τ υ} {Γ Δ Ξ}
 substASC ⟪- ρ' -⟫    ρ = ⟪- ρ *-Sub ρ' -⟫
 substASC (F `* V)    ρ = (substASC F ρ) `* (subst V ρ)
 
-{-
+
 -- commutation between substitution and instantiation
 
-_substC⟪_⟫_ : ∀ {f} {τ υ} {Γ Δ Ξ}
-                (C : Cxt⟪ Γ ⊢ τ ⟫ {f} υ Δ) (T : Trm τ Γ) (ρ : Δ ⊨ Ξ) →
- substC C ρ ⟪ T ⟫ ≡ subst (C ⟪ T ⟫) ρ
+_substASC⟪_⟫_ : ∀ {τ υ} {Γ Δ Ξ}
+                (C : ASC⟪ Γ ⊢ τ ⟫ υ Δ) (T : Trm τ Γ) (ρ : Δ ⊨ Ξ) →
+ substASC C ρ ⟪ T ⟫ASC ≡ subst (C ⟪ T ⟫ASC) ρ
+⟪- ρ' -⟫ substASC⟪ T ⟫ ρ rewrite lemma33 ρ ρ' T  = PEq.refl
+(F `* V) substASC⟪ T ⟫ ρ rewrite F substASC⟪ T ⟫ ρ = {!!} --PEq.refl
 
-`exp E       substC⟪ T ⟫ ρ = PEq.refl
-`λ M         substC⟪ T ⟫ ρ -- = PEq.cong `λ (M substC⟪ T ⟫ (ext₀^Env ρ))
- rewrite M substC⟪ T ⟫ (ext₀^Env ρ)
-                           = PEq.refl
-
-⟪- ρ' -⟫     substC⟪ T ⟫ ρ
- rewrite lemma33 ρ ρ' T    = PEq.refl
-`val C         substC⟪ T ⟫ ρ
- rewrite C substC⟪ T ⟫ ρ   = PEq.refl
-(F `$ A)     substC⟪ T ⟫ ρ
- rewrite F substC⟪ T ⟫ ρ | A substC⟪ T ⟫ ρ
-                           = PEq.refl
-`if B L R    substC⟪ T ⟫ ρ
- rewrite B substC⟪ T ⟫ ρ | L substC⟪ T ⟫ ρ | R substC⟪ T ⟫ ρ
-                           = PEq.refl
-`let P Q     substC⟪ T ⟫ ρ
- rewrite P substC⟪ T ⟫ ρ | Q substC⟪ T ⟫ (ext₀^Env ρ)
-                           = PEq.refl
 
 -- composition of contexts
 
-_⟪∘⟫_ : ∀ {f} {Γ Δ Ξ} {σ τ υ}
-          (P : Cxt⟪ Δ ⊢ σ ⟫ {f} τ Ξ)
-          (Q : Cxt⟪ Γ ⊢ υ ⟫ {`trm} σ Δ) → Cxt⟪ Γ ⊢ υ ⟫ {f} τ Ξ
-`exp E     ⟪∘⟫ Q = `exp E
-`λ M       ⟪∘⟫ Q = `λ (M ⟪∘⟫ Q)
-⟪- ρ -⟫    ⟪∘⟫ Q =  substC Q ρ
-`val P     ⟪∘⟫ Q = `val (P ⟪∘⟫ Q)
-(F `$ A)   ⟪∘⟫ Q = F ⟪∘⟫ Q `$ A ⟪∘⟫ Q
-`if B L R  ⟪∘⟫ Q = `if (B ⟪∘⟫ Q) (L ⟪∘⟫ Q) (R ⟪∘⟫ Q)
-`let P R   ⟪∘⟫ Q = `let (P ⟪∘⟫ Q) (R ⟪∘⟫ Q)
+_⟪∘⟫ASC_ : ∀ {Γ Δ Ξ} {σ τ υ}
+          (P : ASC⟪ Δ ⊢ σ ⟫ τ Ξ)
+          (Q : ASC⟪ Γ ⊢ υ ⟫ σ Δ) → ASC⟪ Γ ⊢ υ ⟫ τ Ξ
+⟪- ρ -⟫  ⟪∘⟫ASC Q =  substASC Q ρ
+(F `* V) ⟪∘⟫ASC Q = F ⟪∘⟫ASC Q `* V
+
 
 -- commutation between composition and instantiation
 
-_⟪∘_⟫_ : ∀ {f} {Γ Δ Ξ} {σ τ υ} (P : Cxt⟪ Δ ⊢ σ ⟫ {f} τ Ξ) (T : Trm υ Γ) →
-           (Q : Cxt⟪ Γ ⊢ υ ⟫ {`trm} σ Δ) → (P ⟪∘⟫ Q) ⟪ T ⟫ ≡ P ⟪ Q ⟪ T ⟫ ⟫
-
-`exp E    ⟪∘ T ⟫ Q = PEq.refl
-`λ M      ⟪∘ T ⟫ Q rewrite M ⟪∘ T ⟫ Q = PEq.refl
-
-⟪- ρ -⟫   ⟪∘ T ⟫ Q = Q substC⟪ T ⟫ ρ
-`val P    ⟪∘ T ⟫ Q rewrite P ⟪∘ T ⟫ Q = PEq.refl
-(F `$ A)  ⟪∘ T ⟫ Q rewrite F ⟪∘ T ⟫ Q | A ⟪∘ T ⟫ Q = PEq.refl
-`if B L R ⟪∘ T ⟫ Q rewrite B ⟪∘ T ⟫ Q | L ⟪∘ T ⟫ Q | R ⟪∘ T ⟫ Q = PEq.refl
-`let P R  ⟪∘ T ⟫ Q rewrite P ⟪∘ T ⟫ Q | R ⟪∘ T ⟫ Q = PEq.refl
--}
+_⟪∘_⟫ASC_ : ∀ {Γ Δ Ξ} {σ τ υ} (P : ASC⟪ Δ ⊢ σ ⟫ τ Ξ) (T : Trm υ Γ) →
+           (Q : ASC⟪ Γ ⊢ υ ⟫ σ Δ) → (P ⟪∘⟫ASC Q) ⟪ T ⟫ASC ≡ P ⟪ Q ⟪ T ⟫ASC ⟫ASC
+⟪- ρ -⟫   ⟪∘ T ⟫ASC Q = Q substASC⟪ T ⟫ ρ
+(F `* V)  ⟪∘ T ⟫ASC Q rewrite F ⟪∘ T ⟫ASC Q = {!!} --PEq.refl
 
 -- Applicative Substituting Contexts simulation/approximation
 -- The fundamental relations, quantifying over all applicative contexts.

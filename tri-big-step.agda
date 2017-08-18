@@ -15,6 +15,7 @@ open import acmm
 open import relations
 open import big-step-prop
 open import vcc-apx
+open import asc-apx
 open import obs-apx
 
 {-------------------------------------}
@@ -355,6 +356,36 @@ lemma-2-6O {Γ} {σ `→ τ} {M} {N} sMN ρ = cxt-sim→sim^T sMN ρ , lemma2-6-
 
 lemma-2-6 : ∀ {τ} {M N} → cxt-sim₀ M N → app-cxt-sim₀ {`trm} {τ} M N
 lemma-2-6 {τ} {M} {N} sMN with lemma-2-6O sMN ι^Env
+... | prf rewrite ι^Env₀ M | ι^Env₀ N = prf
+
+-- ASCs coincide with app-cxt-sim
+lemma-2-6O-ASC : ∀ {Γ} {τ} {M N} → asc-sim M N →
+  app-cxt-sim {`trm} {Γ} {τ} M N
+lemma-2-6O-ASC {Γ}  {`b β}                = asc-sim→sim^T
+lemma-2-6O-ASC {Γ} {σ `→ τ} {M} {N} sMN ρ = {!!}
+ where
+  -- basic applicative setting, relative to the valuation ρ
+  appT₀ : (M : Exp (σ `→ τ) Γ) (U : Val₀ σ) → Trm₀ τ
+  appT₀ M U = appT (subst M ρ) U
+
+{-
+  -- appT₀ reified as a one-hole context
+  appP₀ : (U : Val₀ σ) → Cxt⟪ Γ ⊢ σ `→ τ ⟫ τ ε
+  appP₀ U = `let ⟪- ρ -⟫ (`exp (Val→Spine U))
+
+  -- hence asc-sim₀ is closed under appT₀, modulo rewrites
+  sim-appT₀ : ∀ U → asc-sim₀ (appT₀ M U) (appT₀ N U)
+  sim-appT₀ U P with sMN (P ⟪∘⟫ (⟪- ρ -⟫ `* U))
+  ... | prf rewrite P ⟪∘ M ⟫ appP₀ U | P ⟪∘ N ⟫ appP₀ U = prf
+
+  -- and hence likewise, finally, app-cxt-sim₀ itself,
+  -- by IH at type τ (via dummy valuation ι^Env, more rewrites)
+  lemma2-6-appT₀ : ∀ U → app-cxt-sim₀ (appT₀ M U) (appT₀ N U)
+  lemma2-6-appT₀ U with lemma-2-6O-ASC {Γ = ε} {τ = τ} (sim-appT₀ U) ι^Env
+  ... | prf rewrite ι^Env₀ (appT₀ M U) | ι^Env₀ (appT₀ N U) = prf
+
+lemma-2-6 : ∀ {τ} {M N} → cxt-sim₀ M N → app-cxt-sim₀ {`trm} {τ} M N
+lemma-2-6 {τ} {M} {N} sMN with lemma-2-6O-ASC sMN ι^Env
 ... | prf rewrite ι^Env₀ M | ι^Env₀ N = prf
 
 -- Now for the VCC analogue.
@@ -843,3 +874,4 @@ vcc-sim→cxt-sim^T {Γ} {τ} {M} {N} sMN with vcc-sim→app-cxt-sim^T sMN
 ... | ac-sim with app-cxt-sim→app-sim^T {Γ} {τ} {M} {N} ac-sim
 ... | ap-sim with app-sim→log-sim^T {Γ} {τ} {M} {N} ap-sim
 ... | lo-sim = log-sim→cxt-sim^T lo-sim
+-}
