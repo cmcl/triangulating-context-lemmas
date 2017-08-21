@@ -51,8 +51,11 @@ _substASC⟪_⟫_ : ∀ {τ υ} {Γ Δ Ξ}
                 (C : ASC⟪ Γ ⊢ τ ⟫ υ Δ) (T : Trm τ Γ) (ρ : Δ ⊨ Ξ) →
  substASC C ρ ⟪ T ⟫ASC ≡ subst (C ⟪ T ⟫ASC) ρ
 ⟪- ρ' -⟫ substASC⟪ T ⟫ ρ rewrite lemma33 ρ ρ' T  = PEq.refl
-(F `* V) substASC⟪ T ⟫ ρ rewrite F substASC⟪ T ⟫ ρ = {!!} --PEq.refl
-
+(_`*_ {σ} {ω} F V) substASC⟪ T ⟫ ρ
+  rewrite F substASC⟪ T ⟫ ρ |
+          ren-sub-prop V (weak {σ = σ `→ ω}) weak (ext₀^Env ρ) ρ
+                       (ext₀^Env-weak-comm ρ)
+  = PEq.refl
 
 -- composition of contexts
 
@@ -66,9 +69,10 @@ _⟪∘⟫ASC_ : ∀ {Γ Δ Ξ} {σ τ υ}
 -- commutation between composition and instantiation
 
 _⟪∘_⟫ASC_ : ∀ {Γ Δ Ξ} {σ τ υ} (P : ASC⟪ Δ ⊢ σ ⟫ τ Ξ) (T : Trm υ Γ) →
-           (Q : ASC⟪ Γ ⊢ υ ⟫ σ Δ) → (P ⟪∘⟫ASC Q) ⟪ T ⟫ASC ≡ P ⟪ Q ⟪ T ⟫ASC ⟫ASC
+           (Q : ASC⟪ Γ ⊢ υ ⟫ σ Δ) →
+          (P ⟪∘⟫ASC Q) ⟪ T ⟫ASC ≡ P ⟪ Q ⟪ T ⟫ASC ⟫ASC
 ⟪- ρ -⟫   ⟪∘ T ⟫ASC Q = Q substASC⟪ T ⟫ ρ
-(F `* V)  ⟪∘ T ⟫ASC Q rewrite F ⟪∘ T ⟫ASC Q = {!!} --PEq.refl
+(F `* V)  ⟪∘ T ⟫ASC Q rewrite F ⟪∘ T ⟫ASC Q = PEq.refl
 
 -- Applicative Substituting Contexts simulation/approximation
 -- The fundamental relations, quantifying over all applicative contexts.
@@ -140,10 +144,16 @@ lemma-2-10ii-$ r red der with r der
 →$-asc-vcc (P `* V) M with →$-asc-vcc P M
 ... | →$PM = →MN-$ →$PM
 
-vcc-sim→asc-sim : ∀ {Γ} {τ} {M N} →
+vcc-sim→asc-sim^T : ∀ {Γ} {τ} {M N} →
   vcc-sim M N → asc-sim {`trm} {Γ} {τ} M N
-vcc-sim→asc-sim {Γ} {τ} {M} {N} sMN ⟪- ρ -⟫ = vcc-sim→sim^T sMN ρ
-vcc-sim→asc-sim {Γ} {τ} {M} {N} sMN (P `* V)
+vcc-sim→asc-sim^T {Γ} {τ} {M} {N} sMN ⟪- ρ -⟫ = vcc-sim→sim^T sMN ρ
+vcc-sim→asc-sim^T {Γ} {τ} {M} {N} sMN (P `* V)
   with sMN (appVCC (asc-to-vcc P) V)
 ... | hyp = lemma-2-10i-$ (→MN-$ (→$-asc-vcc P M))
                           (lemma-2-10ii-$ hyp (→MN-$ (→$-asc-vcc P N)))
+
+-- ASCs are contained within VSCs
+
+cxt-sim→asc-sim^T : ∀ {Γ} {τ} {M N} → cxt-sim M N → asc-sim {`trm} {Γ} {τ} M N
+cxt-sim→asc-sim^T {Γ} {τ} {M} {N} sMN with cxt-sim→vcc-sim^T sMN
+... | sMN-VCC = vcc-sim→asc-sim^T sMN-VCC
