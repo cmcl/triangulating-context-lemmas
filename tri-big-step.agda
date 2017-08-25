@@ -151,6 +151,48 @@ lemma-2-11O : ∀ {Γ} {τ} {M N} →
   app-cxt-sim M N → app-sim {`trm} {Γ} {τ} M N
 lemma-2-11O {Γ} {τ} sMN = lemma-2-11 {`trm} {τ} ∘ sMN
 
+lemma-2-11O-ASC : ∀ {Γ} {τ} {M N} → asc-sim M N → app-sim {`trm} {Γ} {τ} M N
+lemma-2-11O-ASC {Γ} {`b β} sMN ρ =
+  lemma-[ lemma-2-11B {β} ]^T-mono (sMN ⟪- ρ -⟫)
+lemma-2-11O-ASC {Γ} {σ `→ τ} {M} {N} sMN ρ =
+  app-sim₀^T-appT app-sim₀-appT (sMN ⟪- ρ -⟫)
+ where
+  -- basic applicative setting, relative to the valuation ρ
+  appT₀ : (M : Exp (σ `→ τ) Γ) (U : Val₀ σ) → Trm₀ τ
+  appT₀ M U = appT (subst M ρ) U
+
+  appP₀ : (U : Val₀ σ) → ASC⟪ Γ ⊢ σ `→ τ ⟫ τ ε
+  appP₀ U = ⟪- ρ -⟫ `* U
+
+  -- hence asc-sim₀ is closed under appT₀, modulo rewrites
+  sim-appT₀ : ∀ U → asc-sim₀ (appT₀ M U) (appT₀ N U)
+  sim-appT₀ U P with sMN (P ⟪∘⟫ASC appP₀ U)
+  ... | prf rewrite P ⟪∘ M ⟫ASC appP₀ U | P ⟪∘ N ⟫ASC appP₀ U = prf
+
+  app-sim₀-appT : ∀ U →
+    app-sim₀^T {τ} (appT (subst M ρ) U) (appT (subst N ρ) U)
+  app-sim₀-appT U with lemma-2-11O-ASC (sim-appT₀ U) ι^Env
+  ... | prf rewrite ι^Env₀ (subst M ρ) | ι^Env₀ (subst N ρ)
+            with    ren-sub-prop U (weak {σ = σ `→ τ}) weak
+                                 (ext₀^Env ι^Env) ι^Env
+                                 (ext₀^Env-weak-comm ι^Env)
+  ... | weak-ι^Env-comm rewrite weak-ι^Env-comm | ι^Env₀ U = prf
+
+Lemma-2-11-ASC : (f : CBV) → Set
+Lemma-2-11-ASC f = ∀ {τ} {M N} → asc-sim₀ M N → app-sim₀ {f} {τ} M N
+lemma-2-11-ASC : ∀ {f} → Lemma-2-11-ASC f
+lemma-2-11-ASC {f} =
+  case f return Lemma-2-11-ASC of λ { `val →  prfV ; `trm → prfT  }
+ where
+  prfV : Lemma-2-11-ASC `val
+  prfT : Lemma-2-11-ASC `trm
+
+  prfV sMN = T^V^[ prfT sMN ]^V
+
+  prfT {τ} {M} {N} sMN with lemma-2-11O-ASC sMN ι^Env
+  ... | prf rewrite ι^Env₀ M | ι^Env₀ N = prf
+
+{-
 -- Logical simulation
 log-sim₀ : GRel₀^E
 log-sim₀^V : GRel₀^V
@@ -794,3 +836,4 @@ vcc-sim→cxt-sim^T {Γ} {τ} {M} {N} sMN with vcc-sim→app-cxt-sim^T sMN
 asc-sim→cxt-sim^T : ∀ {Γ} {τ} {M N} → asc-sim M N → cxt-sim {`trm} {Γ} {τ} M N
 asc-sim→cxt-sim^T {Γ} {τ} {M} {N} sMN with asc-sim→app-cxt-sim^T sMN
 ... | sMN-ACS = app-cxt-sim→cxt-sim^T sMN-ACS
+-}
