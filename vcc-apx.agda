@@ -60,38 +60,6 @@ _⟪_⟫VCC : ∀ {f} {Γ Δ} {σ τ}
 Ren₀ : ∀ {Γ} → ε ⊆ Γ
 var Ren₀ ()
 
-ext₀^Var-ext₀ : ∀ {Γ} {σ} → {ρ : Γ ⊆ Γ} → (∀ {τ} v → var ρ {τ} v ≡ v) →
- ∀ {τ} v → var (pop! {σ} {Γ} ρ) {τ} v ≡ v
-ext₀^Var-ext₀ {Γ} {σ} {ρ} eq =
-  [ P ][ PEq.refl ,,,  PEq.cong su ∘ eq ]
- where P = λ {τ} v → var (pop! {σ} {Γ} ρ) {τ} v ≡ v
-
-ι^Var-lemma-aux : {Γ : Cx} {σ : Ty} {ρ : Γ ⊆ Γ}
-             (prf : {τ : Ty} (v : Var τ Γ) → var ρ {τ} v ≡ v) →
-             {cbv : CBV} (E : Exp {cbv} σ Γ) →
-             (ρ *-Var E) ≡ E
-ι^Var-lemma-aux prf  (`var v)
- rewrite prf v             = PEq.refl
-ι^Var-lemma-aux prf   (`b b)    = PEq.refl
-ι^Var-lemma-aux prf   (`λ M)
- rewrite ι^Var-lemma-aux (ext₀^Var-ext₀ prf) M    = PEq.refl
-ι^Var-lemma-aux prf  (`val V)
- rewrite ι^Var-lemma-aux prf V  = PEq.refl
-ι^Var-lemma-aux prf  (F `$ A)
- rewrite ι^Var-lemma-aux prf F | ι^Var-lemma-aux prf A = PEq.refl
-ι^Var-lemma-aux prf (`if B L R)
-  rewrite ι^Var-lemma-aux prf B | ι^Var-lemma-aux prf L |
-          ι^Var-lemma-aux prf R = PEq.refl
-ι^Var-lemma-aux prf  (`let M N)
-  rewrite ι^Var-lemma-aux prf M |
-          ι^Var-lemma-aux (ext₀^Var-ext₀ prf) N = PEq.refl
-
-ι^Var-lemma : ∀ {f} {Γ} {σ} → (E : Exp {f} σ Γ) → (ι^Var *-Var E) ≡ E
-ι^Var-lemma = ι^Var-lemma-aux {ρ = ι^Var} (λ v → PEq.refl)
-
-ι^Var₀-lemma : ∀ {f} {σ} → (ρ : ε ⊆ ε) (E : Exp₀ {f} σ) → (ρ *-Var E) ≡ E
-ι^Var₀-lemma ρ = ι^Var-lemma-aux {ρ = ρ} (λ ())
-
 suc : ∀ {Γ Δ} {τ} → Γ ∙ τ ⊨ Δ → Γ ⊨ Δ
 var (suc ρ) v = var ρ (su v)
 
@@ -187,23 +155,6 @@ renC (F `$ A) ρ = (renC F ρ) `$ (renC A ρ)
 renC (`if B L R) ρ = `if (renC B ρ) (renC L ρ) (renC R ρ)
 renC (`let M N) ρ = `let (renC M ρ) (renC N (ext₀^Var ρ))
 
--- lemma33 but for renamings
-
-lemma33-ren : ∀ {f} {Γ Δ Ξ} {σ} → (r : Δ ⊆ Ξ) → (r' : Γ ⊆ Δ) →
-  (E : Exp {f} σ Γ) → (trans^Var r' r *-Var E) ≡ (r *-Var (r' *-Var E))
-lemma33-ren r r' (`var v) = PEq.refl
-lemma33-ren r r' (`b b)  = PEq.refl
-lemma33-ren r r' (`λ M)  =
-  PEq.cong λλ (lemma33-ren (ext₀^Var r) (ext₀^Var r') M)
-lemma33-ren r r' (`val V) rewrite lemma33-ren r r' V = PEq.refl
-lemma33-ren r r' (f `$ a) rewrite lemma33-ren r r' f | lemma33-ren r r' a =
-  PEq.refl
-lemma33-ren r r' (`if B L R) rewrite lemma33-ren r r' B | lemma33-ren r r' L |
-                                 lemma33-ren r r' R = PEq.refl
-lemma33-ren r r'  (`let M N) rewrite lemma33-ren r r' M =
-  PEq.cong (`let _) (lemma33-ren (ext₀^Var r) (ext₀^Var r') N)
-
-
 -- commutation between renaming and instantiation
 
 _renC⟪_⟫_ : ∀ {f} {τ υ} {Γ Δ Ξ}
@@ -226,7 +177,6 @@ _renC⟪_⟫_ : ∀ {f} {τ υ} {Γ Δ Ξ}
                            = PEq.refl
 `let P Q     renC⟪ T ⟫ r
  rewrite P renC⟪ T ⟫ r | Q renC⟪ T ⟫ (ext₀^Var r) = PEq.refl
-
 
 -- composition of contexts
 
@@ -347,7 +297,7 @@ VCC-Cxt⟪ M ⟫ (`if B L R)
   rewrite VCC-Cxt⟪ M ⟫ B | VCC-Cxt⟪ M ⟫ L | VCC-Cxt⟪ M ⟫ R = PEq.refl
 VCC-Cxt⟪ M ⟫ (`let P Q) rewrite VCC-Cxt⟪ M ⟫ P | VCC-Cxt⟪ M ⟫ Q = PEq.refl
 
--- VCC contexts are contained within VSCs
+-- VCCs are contained within VSCs
 
 cxt-sim→vcc-sim^T : ∀ {Γ} {τ} {M N} → cxt-sim M N → vcc-sim {`trm} {Γ} {τ} M N
 cxt-sim→vcc-sim^T {Γ} {τ} {M} {N} sMN P with sMN (vcc-to-cxt P)

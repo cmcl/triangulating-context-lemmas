@@ -151,6 +151,48 @@ lemma-2-11O : ∀ {Γ} {τ} {M N} →
   app-cxt-sim M N → app-sim {`trm} {Γ} {τ} M N
 lemma-2-11O {Γ} {τ} sMN = lemma-2-11 {`trm} {τ} ∘ sMN
 
+lemma-2-11O-ASC : ∀ {Γ} {τ} {M N} → asc-sim M N → app-sim {`trm} {Γ} {τ} M N
+lemma-2-11O-ASC {Γ} {`b β} sMN ρ =
+  lemma-[ lemma-2-11B {β} ]^T-mono (sMN ⟪- ρ -⟫)
+lemma-2-11O-ASC {Γ} {σ `→ τ} {M} {N} sMN ρ =
+  app-sim₀^T-appT app-sim₀-appT (sMN ⟪- ρ -⟫)
+ where
+  -- basic applicative setting, relative to the valuation ρ
+  appT₀ : (M : Exp (σ `→ τ) Γ) (U : Val₀ σ) → Trm₀ τ
+  appT₀ M U = appT (subst M ρ) U
+
+  appP₀ : (U : Val₀ σ) → ASC⟪ Γ ⊢ σ `→ τ ⟫ τ ε
+  appP₀ U = ⟪- ρ -⟫ `* U
+
+  -- hence asc-sim₀ is closed under appT₀, modulo rewrites
+  sim-appT₀ : ∀ U → asc-sim₀ (appT₀ M U) (appT₀ N U)
+  sim-appT₀ U P with sMN (P ⟪∘⟫ASC appP₀ U)
+  ... | prf rewrite P ⟪∘ M ⟫ASC appP₀ U | P ⟪∘ N ⟫ASC appP₀ U = prf
+
+  app-sim₀-appT : ∀ U →
+    app-sim₀^T {τ} (appT (subst M ρ) U) (appT (subst N ρ) U)
+  app-sim₀-appT U with lemma-2-11O-ASC (sim-appT₀ U) ι^Env
+  ... | prf rewrite ι^Env₀ (subst M ρ) | ι^Env₀ (subst N ρ)
+            with    ren-sub-prop U (weak {σ = σ `→ τ}) weak
+                                 (ext₀^Env ι^Env) ι^Env
+                                 (ext₀^Env-weak-comm ι^Env)
+  ... | weak-ι^Env-comm rewrite weak-ι^Env-comm | ι^Env₀ U = prf
+
+Lemma-2-11-ASC : (f : CBV) → Set
+Lemma-2-11-ASC f = ∀ {τ} {M N} → asc-sim₀ M N → app-sim₀ {f} {τ} M N
+lemma-2-11-ASC : ∀ {f} → Lemma-2-11-ASC f
+lemma-2-11-ASC {f} =
+  case f return Lemma-2-11-ASC of λ { `val →  prfV ; `trm → prfT  }
+ where
+  prfV : Lemma-2-11-ASC `val
+  prfT : Lemma-2-11-ASC `trm
+
+  prfV sMN = T^V^[ prfT sMN ]^V
+
+  prfT {τ} {M} {N} sMN with lemma-2-11O-ASC sMN ι^Env
+  ... | prf rewrite ι^Env₀ M | ι^Env₀ N = prf
+
+{-
 -- Logical simulation
 log-sim₀ : GRel₀^E
 log-sim₀^V : GRel₀^V
@@ -362,21 +404,20 @@ lemma-2-6 {τ} {M} {N} sMN with lemma-2-6O sMN ι^Env
 lemma-2-6O-ASC : ∀ {Γ} {τ} {M N} → asc-sim M N →
   app-cxt-sim {`trm} {Γ} {τ} M N
 lemma-2-6O-ASC {Γ}  {`b β}                = asc-sim→sim^T
-lemma-2-6O-ASC {Γ} {σ `→ τ} {M} {N} sMN ρ = {!!}
+lemma-2-6O-ASC {Γ} {σ `→ τ} {M} {N} sMN ρ =
+  (asc-sim→sim^T sMN ρ) , lemma2-6-appT₀
  where
   -- basic applicative setting, relative to the valuation ρ
   appT₀ : (M : Exp (σ `→ τ) Γ) (U : Val₀ σ) → Trm₀ τ
   appT₀ M U = appT (subst M ρ) U
 
-{-
-  -- appT₀ reified as a one-hole context
-  appP₀ : (U : Val₀ σ) → Cxt⟪ Γ ⊢ σ `→ τ ⟫ τ ε
-  appP₀ U = `let ⟪- ρ -⟫ (`exp (Val→Spine U))
+  appP₀ : (U : Val₀ σ) → ASC⟪ Γ ⊢ σ `→ τ ⟫ τ ε
+  appP₀ U = ⟪- ρ -⟫ `* U
 
   -- hence asc-sim₀ is closed under appT₀, modulo rewrites
   sim-appT₀ : ∀ U → asc-sim₀ (appT₀ M U) (appT₀ N U)
-  sim-appT₀ U P with sMN (P ⟪∘⟫ (⟪- ρ -⟫ `* U))
-  ... | prf rewrite P ⟪∘ M ⟫ appP₀ U | P ⟪∘ N ⟫ appP₀ U = prf
+  sim-appT₀ U P with sMN (P ⟪∘⟫ASC appP₀ U)
+  ... | prf rewrite P ⟪∘ M ⟫ASC appP₀ U | P ⟪∘ N ⟫ASC appP₀ U = prf
 
   -- and hence likewise, finally, app-cxt-sim₀ itself,
   -- by IH at type τ (via dummy valuation ι^Env, more rewrites)
@@ -384,103 +425,11 @@ lemma-2-6O-ASC {Γ} {σ `→ τ} {M} {N} sMN ρ = {!!}
   lemma2-6-appT₀ U with lemma-2-6O-ASC {Γ = ε} {τ = τ} (sim-appT₀ U) ι^Env
   ... | prf rewrite ι^Env₀ (appT₀ M U) | ι^Env₀ (appT₀ N U) = prf
 
-lemma-2-6 : ∀ {τ} {M N} → cxt-sim₀ M N → app-cxt-sim₀ {`trm} {τ} M N
-lemma-2-6 {τ} {M} {N} sMN with lemma-2-6O-ASC sMN ι^Env
+lemma-2-6-ASC : ∀ {τ} {M N} → asc-sim₀ M N → app-cxt-sim₀ {`trm} {τ} M N
+lemma-2-6-ASC {τ} {M} {N} sMN with lemma-2-6O-ASC sMN ι^Env
 ... | prf rewrite ι^Env₀ M | ι^Env₀ N = prf
 
 -- Now for the VCC analogue.
-
-ext₀^Var-ext : ∀ {Γ Δ} {σ} → {r r' : Γ ⊆ Δ} →
-                 (∀ {τ} v → var r {τ} v ≡ var r' v) →
- ∀ {τ} v → var (ext₀^Var {σ} {Γ} r) {τ} v ≡ var (ext₀^Var r') v
-ext₀^Var-ext {Γ} {Δ} {σ} {r} {r'} eq =
-  [ P ][ PEq.refl ,,,  PEq.cong su ∘ eq ]
- where P = λ {τ} v → var (ext₀^Var {σ} {Γ} r) {τ} v ≡ var (ext₀^Var r') v
-
-ren-ext : ∀ {f} {Γ Δ} {σ} → (E : Exp {f} σ Γ) →
- {r r' : Γ ⊆ Δ} → (∀ {τ} v → var r {τ} v ≡ var r' v) →
- ren E r ≡ ren E r'
-ren-ext (`var v) prf = PEq.cong `var (prf v)
-ren-ext (`b b) prf = PEq.refl
-ren-ext (`λ M) prf rewrite ren-ext M (ext₀^Var-ext prf) = PEq.refl
-ren-ext (`val M) prf rewrite ren-ext M prf = PEq.refl
-ren-ext (F `$ A) prf rewrite ren-ext F prf | ren-ext A prf = PEq.refl
-ren-ext (`if B L R) prf
-  rewrite ren-ext B prf | ren-ext L prf | ren-ext R prf = PEq.refl
-ren-ext (`let M N) prf
-  rewrite ren-ext M prf | ren-ext N (ext₀^Var-ext prf) = PEq.refl
-
--- The same proof as for ext₀^Env-ext₀ but I cannot think how to generalise
--- the statement to encompass both.
-ext₀^Env^Var-ext₀ : ∀ {Γ Δ} {σ} → {r : Γ ⊆ Δ} → {ρ : Δ ⊨ Γ} →
-  (∀ {τ} v → var ρ {τ} (var r v) ≡ `var v) →
- ∀ {τ} v → var (ext₀^Env {σ} {Δ} ρ) {τ} (var (ext₀^Var r) v) ≡ `var v
-ext₀^Env^Var-ext₀ {Γ} {Δ} {σ} {r} {ρ} eq =
-  [ P ][ PEq.refl ,,, (PEq.cong (weak *-Var_)) ∘ eq ]
-  where
-    P = λ {τ} v → var (ext₀^Env {σ} {Δ} ρ) {τ} (var (ext₀^Var r) v) ≡ `var v
-
-ren-sub : ∀ {f} {Γ Δ} {σ} →
-  (E : Exp {f} σ Γ) → (r : Γ ⊆ Δ) → (ρ : Δ ⊨ Γ) →
-  (∀ {τ} v → var ρ {τ} (var r v) ≡ `var v) →
-  subst (r *-Var E) ρ ≡ E
-ren-sub (`var v) r ρ prf = prf v
-ren-sub (`b b) r ρ prf = PEq.refl
-ren-sub (`λ M) r ρ prf
-  with ren-sub M (ext₀^Var r) (ext₀^Env ρ) (ext₀^Env^Var-ext₀ {ρ = ρ} prf)
-... | ih rewrite ih = PEq.refl
-ren-sub (`val M) r ρ prf rewrite ren-sub M r ρ prf = PEq.refl
-ren-sub (F `$ A) r ρ prf
-  rewrite ren-sub F r ρ prf | ren-sub A r ρ prf = PEq.refl
-ren-sub (`if B L R) r ρ prf
-  rewrite ren-sub B r ρ prf | ren-sub L r ρ prf | ren-sub R r ρ prf = PEq.refl
-ren-sub (`let M N) r ρ prf rewrite ren-sub M r ρ prf
-  with ren-sub N (ext₀^Var r) (ext₀^Env ρ) (ext₀^Env^Var-ext₀ {ρ = ρ} prf)
-... | ih rewrite ih = PEq.refl
-
-weak-sub : ∀ {f} {Γ} {σ τ} → (V : Val τ Γ) → (E : Exp {f} σ Γ) →
-  (weak *-Var E) ⟨ V /var₀⟩ ≡ E
-weak-sub V E = ren-sub E weak (ι^Env `∙ V) (λ v → PEq.refl)
-
-weak-ext₀^Var-comm : ∀ {Γ Δ} {σ} {r : Γ ⊆ Δ} →
- ∀ {τ} v → var weak {τ} (var r v) ≡ var (ext₀^Var {σ} r) (var weak v)
-weak-ext₀^Var-comm v = PEq.refl
-
-ext₀^Env-ext^Var : ∀ {Γ Δ Ξ Ω} {σ}
-  {r : Γ ⊆ Δ} {r' : Ω ⊆ Ξ} {ρ : Δ ⊨ Ξ} {ρ' : Γ ⊨ Ω} →
-  (∀ {τ} v → var ρ {τ} (var r v) ≡ (r' *-Var (var ρ' v))) →
- ∀ {τ} v → var (ext₀^Env {σ} ρ) {τ}
-              (var (ext₀^Var r) v) ≡ (ext₀^Var r' *-Var (var (ext₀^Env ρ') v))
-ext₀^Env-ext^Var eq ze = PEq.refl
-ext₀^Env-ext^Var {σ = σ} {r' = r'} {ρ' = ρ'} eq (su v)
-  with (PEq.cong (weak {σ = σ} *-Var_) ∘ eq) v
-... | H rewrite PEq.sym (lemma33-ren (ext₀^Var {σ} r') weak (var ρ' v)) =
-  PEq.trans H (PEq.trans (PEq.sym (lemma33-ren weak r' (var ρ' v)))
-                         (ren-ext (var ρ' v) (weak-ext₀^Var-comm {r = r'})))
-
-ren-sub-prop : ∀ {f} {Γ Δ Ξ Ω} {σ} →
-  (E : Exp {f} σ Γ) → (r : Γ ⊆ Δ) → (r' : Ω ⊆ Ξ)
-  (ρ : Δ ⊨ Ξ) → (ρ' : Γ ⊨ Ω) →
-  (∀ {τ} v → var ρ {τ} (var r v) ≡ (r' *-Var (var ρ' v))) →
-  subst (r *-Var E) ρ ≡ (r' *-Var (subst E ρ'))
-ren-sub-prop (`var x) r r' ρ ρ' prf = prf x
-ren-sub-prop (`b b) r r' ρ ρ' prf = PEq.refl
-ren-sub-prop (`λ M) r r' ρ ρ' prf
-  rewrite ren-sub-prop M (ext₀^Var r) (ext₀^Var r') (ext₀^Env ρ) (ext₀^Env ρ')
-                      (ext₀^Env-ext^Var {r = r} {r'} {ρ} {ρ'} prf) = PEq.refl
-ren-sub-prop (`val M) r r' ρ ρ' prf
-  rewrite ren-sub-prop M r r' ρ ρ' prf = PEq.refl
-ren-sub-prop (F `$ A) r r' ρ ρ' prf
-  rewrite ren-sub-prop F r r' ρ ρ' prf |
-          ren-sub-prop A r r' ρ ρ' prf = PEq.refl
-ren-sub-prop (`if B L R) r r' ρ ρ' prf
-  rewrite ren-sub-prop B r r' ρ ρ' prf |
-          ren-sub-prop L r r' ρ ρ' prf |
-          ren-sub-prop R r r' ρ ρ' prf = PEq.refl
-ren-sub-prop (`let M N) r r' ρ ρ' prf
-  rewrite ren-sub-prop M r r' ρ ρ' prf |
-          ren-sub-prop N (ext₀^Var r) (ext₀^Var r') (ext₀^Env ρ) (ext₀^Env ρ')
-                      (ext₀^Env-ext^Var {r = r} {r'} {ρ} {ρ'} prf)= PEq.refl
 
 swp : ∀ {Γ} {σ τ} → Γ ∙ σ ∙ τ ⊆ Γ ∙ τ ∙ σ
 var swp ze = su ze
@@ -682,10 +631,6 @@ appT₀ ρ M U = appT (subst M ρ) U
 appP : ∀ {Γ} {σ τ} → (U : Val₀ σ) → VCC⟪ Γ ⊢ σ `→ τ ⟫ τ Γ
 appP U = `let ⟪- refl^Var -⟫ (`exp (Val→Spine (Ren₀ *-Var U)))
 
-ext₀^Env-weak : ∀ {Γ Δ} {σ} (ρ : Γ ⊨ Δ) →
-  ∀ {τ} v → var (ext₀^Env {σ} ρ) {τ} (var weak v) ≡ (weak *-Var (var ρ v))
-ext₀^Env-weak ρ v = PEq.refl
-
 sim-appT₀ : ∀ {Γ} {σ τ} {M N : Exp (σ `→ τ) Γ} → (ρ : Γ ⊨ ε) → vcc-sim M N →
   (U : Val₀ σ) → vcc-sim₀ (appT₀ ρ M U) (appT₀ ρ N U)
 sim-appT₀ {Γ} {σ} {τ} {M} {N} ρ sMN U {ν} P
@@ -701,7 +646,8 @@ sim-appT₀ {Γ} {σ} {τ} {M} {N} ρ sMN U {ν} P
                         subst⟪-⟫ P (appP U ⟪ N ⟫VCC) ρ |
                         ι^Var-lemma M | ι^Var-lemma N
   with ren-sub-prop (Ren₀ *-Var U)
-                    (weak {σ = σ `→ τ}) weak (ext₀^Env ρ) ρ (ext₀^Env-weak ρ)
+                    (weak {σ = σ `→ τ}) weak (ext₀^Env ρ) ρ
+                    (ext₀^Env-weak-comm ρ)
 ... | ren-sub-comm rewrite ren-sub-comm with ren-sub U Ren₀ ρ (λ())
 ... | sub-Ren₀ rewrite sub-Ren₀ = subst-sim
 
@@ -852,6 +798,10 @@ vcc-sim→app-cxt-sim^T : ∀ {Γ} {τ} {M N : Trm τ Γ} →
   vcc-sim M N → app-cxt-sim M N
 vcc-sim→app-cxt-sim^T = lemma-2-6O-VCC
 
+asc-sim→app-cxt-sim^T : ∀ {Γ} {τ} {M N : Trm τ Γ} →
+  asc-sim M N → app-cxt-sim M N
+asc-sim→app-cxt-sim^T = lemma-2-6O-ASC
+
 -- ... but here is not enough!
 app-cxt-sim→app-sim^T : ∀ {Γ} {τ} {M N : Trm τ Γ} →
   app-cxt-sim M N → app-sim M N
@@ -867,11 +817,23 @@ log-sim→cxt-sim^T : ∀ {Γ} {τ} {M N : Trm τ Γ} →
   log-sim M N → cxt-sim M N
 log-sim→cxt-sim^T = lemma-2-18O
 
+-- Applicative contexts imply VSCs
+app-cxt-sim→cxt-sim^T : ∀ {Γ} {τ} {M N} → app-cxt-sim M N →
+  cxt-sim {`trm} {Γ} {τ} M N
+app-cxt-sim→cxt-sim^T {Γ} {τ} {M} {N} sMN
+  with app-cxt-sim→app-sim^T {Γ} {τ} {M} {N} sMN 
+... | ap-sim with app-sim→log-sim^T {Γ} {τ} {M} {N} ap-sim
+... | lo-sim = log-sim→cxt-sim^T lo-sim
+
 -- VCC implies VSC
 
 vcc-sim→cxt-sim^T : ∀ {Γ} {τ} {M N} → vcc-sim M N → cxt-sim {`trm} {Γ} {τ} M N
 vcc-sim→cxt-sim^T {Γ} {τ} {M} {N} sMN with vcc-sim→app-cxt-sim^T sMN
-... | ac-sim with app-cxt-sim→app-sim^T {Γ} {τ} {M} {N} ac-sim
-... | ap-sim with app-sim→log-sim^T {Γ} {τ} {M} {N} ap-sim
-... | lo-sim = log-sim→cxt-sim^T lo-sim
+... | sMN-ACS = app-cxt-sim→cxt-sim^T sMN-ACS
+
+-- ASC implies VSC
+
+asc-sim→cxt-sim^T : ∀ {Γ} {τ} {M N} → asc-sim M N → cxt-sim {`trm} {Γ} {τ} M N
+asc-sim→cxt-sim^T {Γ} {τ} {M} {N} sMN with asc-sim→app-cxt-sim^T sMN
+... | sMN-ACS = app-cxt-sim→cxt-sim^T sMN-ACS
 -}
