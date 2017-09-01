@@ -1,7 +1,10 @@
 module simulation where
 
 open import Level as L using (Level ; _⊔_)
+open import Data.Product hiding (map)
 open import Function as F hiding (_∋_ ; _$_)
+
+open import Relation.Binary.PropositionalEquality as PEq using (_≡_)
 
 open import lambda-fg
 open import acmm
@@ -20,7 +23,7 @@ record `∀[_] {ℓ^A ℓ^B ℓ^R : Level}
   constructor env^R
   field var^R : {σ : Ty} (v : Var σ Γ) →
                    rmodel 𝓔^R {σ} {Δ} (var ρ^A v) (var ρ^B v)
-open `∀[_] -- public
+open `∀[_] public
 
 -- Related enviornments can be extended with related elements.
 infixl 10 _∙^R_
@@ -114,10 +117,15 @@ record Simulation {ℓ^A ℓ^M ℓ^B ℓ^N ℓ^RV ℓ^RT : Level}
       Exp {f} σ Γ → (Γ -Env) 𝓥^A Δ → (Γ -Env) 𝓥^B Δ → Set (ℓ^RT)
   𝓡 {f} E ρ^A ρ^B = rmodel (𝓔^R {f}) (sem^A {f} ρ^A E) (sem^B {f} ρ^B E)
 
+  infix 4 _𝓡[_]_
+  _𝓡[_]_ : ∀ {f} {Γ Δ} {σ} → (Γ -Env) 𝓥^A Δ →
+         Exp {f} σ Γ → (Γ -Env) 𝓥^B Δ → Set (ℓ^RT ⊔ ℓ^RV)
+  _𝓡[_]_ ρ^A E ρ^B = `∀[ 𝓥^R ] ρ^A ρ^B → 𝓡 E ρ^A ρ^B
+
   field
     R⟦b⟧  :  ∀ {Γ Δ} {β} → (b : ⟦ β ⟧B) →
              {ρ^A : (Γ -Env) 𝓥^A Δ} {ρ^B : (Γ -Env) 𝓥^B Δ} →
-             `∀[ 𝓥^R ] ρ^A ρ^B → 𝓡 (`b b) ρ^A ρ^B
+             ρ^A 𝓡[ `b b ] ρ^B --`∀[ 𝓥^R ] ρ^A ρ^B → 𝓡 (`b b) ρ^A ρ^B
 
     R⟦λ⟧ :  ∀ {Γ Δ} {σ τ} {M : Trm τ (Γ ∙ σ)}
             {ρ^A : (Γ -Env) 𝓥^A Δ} {ρ^B : (Γ -Env) 𝓥^B Δ}
@@ -126,17 +134,16 @@ record Simulation {ℓ^A ℓ^M ℓ^B ℓ^N ℓ^RV ℓ^RT : Level}
                  let  ρ^A′ = ext^A ρ^A inc u^A
                       ρ^B′ = ext^B ρ^B inc u^B
                  in 𝓡 M ρ^A′ ρ^B′) →
-            `∀[ 𝓥^R ] ρ^A ρ^B → 𝓡 (`λ M) ρ^A ρ^B
+            ρ^A 𝓡[ `λ M ] ρ^B
 
     R⟦$⟧  :  ∀ {Γ Δ} {σ τ} {f : Val (σ `→ τ) Γ} {a}
              {ρ^A : (Γ -Env) 𝓥^A Δ} {ρ^B : (Γ -Env) 𝓥^B Δ} →
-             𝓡 f ρ^A ρ^B → 𝓡 a ρ^A ρ^B →
-             `∀[ 𝓥^R ] ρ^A ρ^B → 𝓡 (f `$ a) ρ^A ρ^B
+             𝓡 f ρ^A ρ^B → 𝓡 a ρ^A ρ^B → ρ^A 𝓡[ f `$ a ] ρ^B
 
     R⟦if⟧ :  ∀ {Γ Δ} {σ} {b} {l r : Trm σ Γ}
              {ρ^A : (Γ -Env) 𝓥^A Δ} {ρ^B : _} →
              𝓡 b ρ^A ρ^B → 𝓡 l ρ^A ρ^B → 𝓡 r ρ^A ρ^B →
-             `∀[ 𝓥^R ] ρ^A ρ^B → 𝓡 (`if b l r) ρ^A ρ^B
+             ρ^A 𝓡[ `if b l r ] ρ^B
 
     R⟦let⟧ :  ∀ {Γ Δ} {σ τ} {M : Trm σ Γ} {N : Trm τ (Γ ∙ σ)}
               {ρ^A : (Γ -Env) 𝓥^A Δ} {ρ^B : (Γ -Env) 𝓥^B Δ}
@@ -146,23 +153,28 @@ record Simulation {ℓ^A ℓ^M ℓ^B ℓ^N ℓ^RV ℓ^RT : Level}
                     let  ρ^A′ = ext^A ρ^A inc u^A
                          ρ^B′ = ext^B ρ^B inc u^B
                     in 𝓡 N ρ^A′ ρ^B′) →
-              `∀[ 𝓥^R ] ρ^A ρ^B → 𝓡 (`let M N) ρ^A ρ^B
+              ρ^A 𝓡[ `let M N ] ρ^B
 
-{-
 -- phew!
-module Simulate {ℓ^EA ℓ^MA ℓ^EB ℓ^MB ℓ^RE ℓ^RM : Level}
- {𝓥^A : PreModel ℓ^EA} {Θ^A : Model 𝓥^A} {𝓔^A : {cbv : CBV} → PreModel ℓ^MA}
- {𝓥^B : PreModel ℓ^EB} {Θ^B : Model 𝓥^B} {𝓔^B : {cbv : CBV} → PreModel ℓ^MB}
- {𝓡𝓥^A : Morphism Θ^A (𝓔^A {cbv = `val})}
- {𝓡𝓣^A : PreMorphism (𝓔^A {cbv = `val}) (𝓔^A {cbv = `trm})}
- {𝓡𝓥^B : Morphism Θ^B (𝓔^B {cbv = `val})}
- {𝓡𝓣^B : PreMorphism (𝓔^B {cbv = `val}) (𝓔^B {cbv = `trm})}
- {𝓢^A : Semantics {Θ = Θ^A} {𝓔 = λ {f} → 𝓔^A {cbv = f}} 𝓡𝓥^A 𝓡𝓣^A}
- {𝓢^B : Semantics {Θ = Θ^B} {𝓔 = λ {f} → 𝓔^B {cbv = f}} 𝓡𝓥^B 𝓡𝓣^B}
- {𝓥^R : RPreModel 𝓥^A 𝓥^B ℓ^RE} {Θ^R : RModel {Θ^A = Θ^A} {Θ^B = Θ^B} 𝓥^R}
- {𝓔^R : {cbv : CBV} → RPreModel (𝓔^A {cbv = cbv}) (𝓔^B {cbv = cbv}) ℓ^RM}
- {VAR^R : RMorphism {𝓥^R = 𝓥^R} 𝓡𝓥^A 𝓡𝓥^B (𝓔^R {cbv = `val})}
- {VAL^R : RPreMorphism (𝓔^R {cbv = `val}) 𝓡𝓣^A 𝓡𝓣^B (𝓔^R {cbv = `trm})}
+module Simulate {ℓ^A ℓ^M ℓ^B ℓ^N ℓ^RV ℓ^RT : Level}
+ {𝓥^A : PreModel ℓ^A} {Θ^A : Model 𝓥^A} {𝓔^A : {f : CBV} → PreModel ℓ^M}
+ {𝓥^B : PreModel ℓ^B} {Θ^B : Model 𝓥^B} {𝓔^B : {f : CBV} → PreModel ℓ^N}
+
+ {var^A : Morphism Θ^A (𝓔^A {`val})}
+ {val^A : PreMorphism (𝓔^A {`val}) (𝓔^A {`trm})}
+
+ {var^B : Morphism Θ^B (𝓔^B {`val})}
+ {val^B : PreMorphism (𝓔^B {`val}) (𝓔^B {`trm})}
+
+ {𝓢^A : Semantics {Θ = Θ^A} {𝓔 = λ {f} → 𝓔^A {f}} var^A val^A}
+ {𝓢^B : Semantics {Θ = Θ^B} {𝓔 = λ {f} → 𝓔^B {f}} var^B val^B}
+
+ {𝓥^R : RPreModel 𝓥^A 𝓥^B ℓ^RV} {Θ^R : RModel {Θ^A = Θ^A} {Θ^B = Θ^B} 𝓥^R}
+
+ {𝓔^R : {f : CBV} → RPreModel (𝓔^A {f}) (𝓔^B {f}) ℓ^RT}
+
+ {VAR^R : RMorphism {𝓥^R = 𝓥^R} var^A var^B (𝓔^R {`val})}
+ {VAL^R : RPreMorphism (𝓔^R {`val}) val^A val^B (𝓔^R {`trm})}
  (𝓢 : Simulation 𝓢^A 𝓢^B {Θ^R = Θ^R} {𝓔^R = 𝓔^R} VAR^R VAL^R)
 
  where
@@ -170,52 +182,32 @@ module Simulate {ℓ^EA ℓ^MA ℓ^EB ℓ^MB ℓ^RE ℓ^RM : Level}
   open RModel Θ^R
   open Simulation 𝓢
 
-  lemma : ∀ {cbv} {Γ Δ} {σ} (E : Exp {cbv} σ Γ) →
-   {ρ^A : (Γ -Env) 𝓥^A Δ} {ρ^B : (Γ -Env) 𝓥^B Δ} (ρ^R : `∀[ 𝓥^R ] ρ^A ρ^B) →
-   rmodel (𝓔^R {cbv = cbv}) (sem^A ρ^A E) (sem^B ρ^B E)
+  lemma : ∀ {f} {Γ Δ} {σ} (E : Exp {f} σ Γ) →
+          {ρ^A : (Γ -Env) 𝓥^A Δ} {ρ^B : (Γ -Env) 𝓥^B Δ} → ρ^A 𝓡[ E ] ρ^B
+-- `∀[ 𝓥^R ] ρ^A ρ^B → rmodel (𝓔^R {f}) (sem^A ρ^A E) (sem^B ρ^B E)
 
-  lemma   (`var v)  ρ^R = R⟦inj⟧ (var^R ρ^R v) where open RMorphism VAR^R
+  lemma (`var v) ρ^R = R⟦inj⟧ (var^R ρ^R v) where open RMorphism VAR^R
 
-  lemma    (`b b)   ρ^R = R⟦b⟧ b ρ^R
-  lemma    (`λ M)   ρ^R = R⟦λ⟧ {M = M} (λ inc u^R → lemma M (th^R ρ^R inc ∙^R u^R)) ρ^R
+  lemma (`b b) ρ^R = R⟦b⟧ b ρ^R
+  lemma (`λ M) ρ^R =
+    R⟦λ⟧ {M = M} (λ inc u^R → lemma M (th^R ρ^R inc ∙^R u^R)) ρ^R
 
-  lemma   (`val V)  ρ^R = VAL^R (lemma V ρ^R)
+  lemma (`val V) ρ^R = VAL^R (lemma V ρ^R)
 
-  lemma   (f `$ a)  ρ^R = R⟦$⟧ {f = f} {a = a} F A ρ^R
+  lemma (f `$ a)  ρ^R = R⟦$⟧ {f = f} {a = a} F A ρ^R
    where F = lemma f ρ^R ; A = lemma a ρ^R
   lemma (`if b l r) ρ^R = R⟦if⟧ {b = b} {l} {r} B L R ρ^R
    where B = lemma b ρ^R ; L = lemma l ρ^R ; R = lemma r ρ^R
-  lemma  (`let M N) ρ^R = R⟦let⟧ {M = M} {N = N} lemmaM (λ inc u^R → lemma N (th^R ρ^R inc ∙^R u^R)) ρ^R
+  lemma (`let M N) ρ^R =
+    R⟦let⟧ {M = M} {N = N} lemmaM
+                           (λ inc u^R → lemma N (th^R ρ^R inc ∙^R u^R)) ρ^R
    where lemmaM = lemma M ρ^R
 
+Exp^R : {f : CBV} → RPreModel (Exp {f}) (Exp {f}) _
+Exp^R {f} = mkRPreModel (λ {σ} {Γ} → _≡_ {A = Exp {f} σ Γ})
 
-Exp^R : {cbv : CBV} → RPreModel (Exp {cbv}) (Exp {cbv}) _
-Exp^R {cbv} = mkRPreModel (λ {σ} {Γ} → _≡_ {A = Exp {cbv} σ Γ})
-
-Val→Val^R : RMorphism Val→Val Val→Val (Exp^R {cbv = `val})
+Val→Val^R : RMorphism Val→Val Val→Val (Exp^R {`val})
 Val→Val^R = mkRInj id -- record { R⟦inj⟧ = id }
 
-Val→Trm^R : RPreMorphism (Exp^R {cbv = `val}) Val→Trm Val→Trm (Exp^R {cbv = `trm})
+Val→Trm^R : RPreMorphism (Exp^R {`val}) Val→Trm Val→Trm (Exp^R {`trm})
 Val→Trm^R = PEq.cong `val
-
-Subst-ext-sim : Simulation Substitution Substitution
- {Θ^R = mkRModel (λ rel inc → env^R (λ v → PEq.cong (inc *-Var_) (var^R rel v)))}
- {𝓔^R = Exp^R} Val→Val^R Val→Trm^R
-Subst-ext-sim = record
- {
- R⟦b⟧ = λ b _ → PEq.refl {x = `b b}
- ;
- R⟦λ⟧ = λ L _ → PEq.cong λλ (L weak (PEq.refl {x = val₀}))
- ;
- R⟦$⟧ = λ F A _ → PEq.cong₂ $$ F A
- ;
- R⟦if⟧ = λ B L R _ → PEq.cong₂ (uncurry IF) (PEq.cong₂ _,_ B L) R
- ;
- R⟦let⟧ = λ M N _ → PEq.cong₂ LET M (N weak (PEq.refl {x = val₀}))
- } where open Model₀ 𝓥al₀
-
-Subst-ext : ∀ {f} {Γ Δ} {σ} → (E : Exp {f} σ Γ) →
- {ρ ρ' : Γ ⊨ Δ} → (∀ {τ} v → var ρ {τ} v ≡ var ρ' v) → subst E ρ ≡ subst E ρ'
-Subst-ext E relρ = lemma E (env^R relρ)
- where open Simulate Subst-ext-sim
--}
