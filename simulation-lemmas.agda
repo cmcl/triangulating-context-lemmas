@@ -33,3 +33,26 @@ Subst-ext : ∀ {f} {Γ Δ} {σ} → (E : Exp {f} σ Γ) →
  {ρ ρ' : Γ ⊨ Δ} → (∀ {τ} v → var ρ {τ} v ≡ var ρ' v) → subst E ρ ≡ subst E ρ'
 Subst-ext E relρ = lemma E (env^R relρ)
  where open Simulate Subst-ext-sim
+
+-- Extensionality of renaming
+Ren-ext-sim : Simulation Renaming Renaming
+ {Θ^R = mkRModel (λ rel inc →
+                    env^R (λ v → PEq.cong (var inc) (var^R rel v)))}
+ {𝓔^R = Exp^R} Var→Val^R Val→Trm^R
+Ren-ext-sim = record
+ {
+ R⟦b⟧ = λ b _ → PEq.refl {x = `b b}
+ ;
+ R⟦λ⟧ = λ L _ → PEq.cong λλ (L weak (PEq.refl {x = var₀}))
+ ;
+ R⟦$⟧ = λ F A _ → PEq.cong₂ _`$_ F A
+ ;
+ R⟦if⟧ = λ B L R _ → PEq.cong₂ (uncurry `if) (PEq.cong₂ _,_ B L) R
+ ;
+ R⟦let⟧ = λ M N _ → PEq.cong₂ `let M (N weak (PEq.refl {x = var₀}))
+ } where open Model₀ 𝓥ar₀
+
+Ren-ext : ∀ {f} {Γ Δ} {σ} → (E : Exp {f} σ Γ) →
+ {r r' : Γ ⊆ Δ} → (∀ {τ} v → var r {τ} v ≡ var r' v) → ren E r ≡ ren E r'
+Ren-ext E relr = lemma E (env^R relr)
+ where open Simulate Ren-ext-sim
