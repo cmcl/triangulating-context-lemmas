@@ -1,5 +1,6 @@
-{-- Using the generic Allais et al. machinery to prove simulation lemmas. -}
-module simulation-lemmas where
+{-- Using the generic Allais et al. machinery to prove simulation and fusion
+ -- results. -}
+module sim-fusion-lemmas where
 
 open import Level as L using (Level ; _⊔_)
 open import Data.Product hiding (map)

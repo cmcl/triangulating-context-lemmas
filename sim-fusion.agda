@@ -1,4 +1,6 @@
-module simulation where
+{-- ACMM simulation and fusion frameworks for proving properties of
+ -- semantics. -}
+module sim-fusion where
 
 open import Level as L using (Level ; _⊔_)
 open import Data.Product hiding (map)
