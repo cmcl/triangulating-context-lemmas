@@ -216,3 +216,168 @@ Val→Val^R = mkRInj id -- record { R⟦inj⟧ = id }
 
 Val→Trm^R : RPreMorphism (Exp^R {`val}) Val→Trm Val→Trm (Exp^R {`trm})
 Val→Trm^R = PEq.cong `val
+
+record Fusion {ℓ^A ℓ^L ℓ^B ℓ^M ℓ^C ℓ^N ℓ^RVBC ℓ^RV ℓ^RT : Level}
+ {𝓥^A : PreModel ℓ^A} {Θ^A : Model 𝓥^A} {𝓔^A : {f : CBV} → PreModel ℓ^L}
+ {𝓥^B : PreModel ℓ^B} {Θ^B : Model 𝓥^B} {𝓔^B : {f : CBV} → PreModel ℓ^M}
+ {𝓥^C : PreModel ℓ^C} {Θ^C : Model 𝓥^C} {𝓔^C : {f : CBV} → PreModel ℓ^N}
+
+ {var^A : Morphism Θ^A (𝓔^A {`val})} -- injection of variables into
+                                         -- values.
+ {val^A : PreMorphism (𝓔^A {`val}) (𝓔^A {`trm})} -- values to term
+                                                         -- injection.
+ -- Analogous maps for 𝓔^B and 𝓔^C.
+ {var^B : Morphism Θ^B (𝓔^B {`val})}
+ {val^B : PreMorphism (𝓔^B {`val}) (𝓔^B {`trm})}
+
+ {var^C : Morphism Θ^C (𝓔^C {`val})}
+ {val^C : PreMorphism (𝓔^C {`val}) (𝓔^C {`trm})}
+
+ (𝓢^A : Semantics {Θ = Θ^A} {𝓔 = λ {f} → 𝓔^A {f}} var^A val^A)
+ (𝓢^B : Semantics {Θ = Θ^B} {𝓔 = λ {f} → 𝓔^B {f}} var^B val^B)
+ (𝓢^C : Semantics {Θ = Θ^C} {𝓔 = λ {f} → 𝓔^C {f}} var^C val^C)
+
+ (𝓥^R-BC : RPreModel 𝓥^B 𝓥^C ℓ^RVBC)
+
+ (𝓥^R : {Γ Δ Θ : Cx} →
+         (Γ -Env) 𝓥^A Δ → (Δ -Env) 𝓥^B Θ → (Γ -Env) 𝓥^C Θ → Set (ℓ^RV))
+
+ (𝓔^R : {f : CBV} → RPreModel (𝓔^B {f}) (𝓔^C {f}) ℓ^RT)
+
+ : Set (ℓ^RV ⊔ ℓ^RVBC ⊔ ℓ^A ⊔ ℓ^B ⊔ ℓ^C ⊔ ℓ^L ⊔ ℓ^M ⊔ ℓ^N ⊔ ℓ^RT)
+ where
+  th^A  = Thin.th Θ^A
+  th^B  = Thin.th Θ^B
+  th^C  = Thin.th Θ^C
+  ext^A  = Thin.ext Θ^A
+  ext^B  = Thin.ext Θ^B
+  ext^C  = Thin.ext Θ^C
+  sem^A  = Eval.sem 𝓢^A
+  sem^B  = Eval.sem 𝓢^B
+  sem^C  = Eval.sem 𝓢^C
+
+  field
+    reifyₐ : {f : CBV} {σ : Ty} → [ (𝓔^A {f}) σ  ⟶ Exp {f} σ ]
+
+    varₐ₀  : {σ : Ty} → [ σ ⊢ 𝓥^A σ ]
+
+  𝓡 : ∀ {f} {Γ Δ Θ} {σ} → Exp {f} σ Γ →
+      (Γ -Env) 𝓥^A Δ → (Δ -Env) 𝓥^B Θ → (Γ -Env) 𝓥^C Θ → Set (ℓ^RT)
+  𝓡 {f} E ρ^A ρ^B ρ^C =
+    rmodel (𝓔^R {f}) (sem^B ρ^B (reifyₐ (sem^A {f} ρ^A E))) (sem^C {f} ρ^C E)
+
+  𝓡[_] : ∀ {f} {Γ Δ Θ} {σ} → Exp {f} σ Γ →
+         (Γ -Env) 𝓥^A Δ → (Δ -Env) 𝓥^B Θ → (Γ -Env) 𝓥^C Θ → Set (ℓ^RT ⊔ ℓ^RV)
+  𝓡[_] E ρ^A ρ^B ρ^C = 𝓥^R ρ^A ρ^B ρ^C → 𝓡 E ρ^A ρ^B ρ^C
+
+  field
+    𝓥^R∙ : ∀ {Γ Δ Θ} {σ} {ρ^A : (Γ -Env) 𝓥^A Δ} {ρ^B : (Δ -Env) 𝓥^B Θ}
+           {ρ^C : (Γ -Env) 𝓥^C Θ} {u^B : 𝓥^B σ Θ} {u^C} →
+           𝓥^R ρ^A ρ^B ρ^C → rmodel 𝓥^R-BC u^B u^C →
+           𝓥^R (th^A ρ^A weak `∙ varₐ₀) (ρ^B `∙ u^B) (ρ^C `∙ u^C)
+
+    𝓥^Rth : ∀ {Γ Δ Θ} {ρ^A : (Γ -Env) 𝓥^A Δ} {ρ^B : (Δ -Env) 𝓥^B Θ}
+            {ρ^C : (Γ -Env) 𝓥^C Θ} {Ξ : Cx} (inc : Θ ⊆ Ξ) →
+            𝓥^R ρ^A (th^B ρ^B inc) (th^C ρ^C inc)
+
+    R⟦b⟧  :  ∀ {Γ Δ Θ} {β} → (b : ⟦ β ⟧B) →
+             {ρ^A : (Γ -Env) 𝓥^A Δ} {ρ^B : (Δ -Env) 𝓥^B Θ}
+             {ρ^C : (Γ -Env) 𝓥^C Θ} →
+             𝓡[ `b b ] ρ^A ρ^B ρ^C
+
+    R⟦var⟧ : ∀ {Γ Δ Θ} {σ} → (v : Var σ Γ) →
+             {ρ^A : (Γ -Env) 𝓥^A Δ} {ρ^B : (Δ -Env) 𝓥^B Θ}
+             {ρ^C : (Γ -Env) 𝓥^C Θ} →
+             𝓡[ `var v ] ρ^A ρ^B ρ^C
+
+    R⟦λ⟧ :  ∀ {Γ Δ Θ} {σ τ} {M : Trm τ (Γ ∙ σ)}
+            {ρ^A : (Γ -Env) 𝓥^A Δ} {ρ^B : (Δ -Env) 𝓥^B Θ}
+            {ρ^C : (Γ -Env) 𝓥^C Θ}
+            (r : ∀ {Θ} {u^B : 𝓥^B σ Θ} {u^C : 𝓥^C σ Θ} →
+               ∀ inc → rmodel 𝓥^R-BC u^B u^C →
+                 let ρ^A′ = th^A ρ^A weak `∙ varₐ₀
+                     ρ^B′ = ext^B ρ^B inc u^B
+                     ρ^C′ = ext^C ρ^C inc u^C
+                 in 𝓡 M ρ^A′ ρ^B′ ρ^C′) →
+            𝓡[ `λ M ] ρ^A ρ^B ρ^C
+
+    R⟦val⟧  :  ∀ {Γ Δ Θ} {σ} {V : Val σ Γ}
+               {ρ^A : (Γ -Env) 𝓥^A Δ} {ρ^B : (Δ -Env) 𝓥^B Θ}
+               {ρ^C : (Γ -Env) 𝓥^C Θ} →
+               𝓡 V ρ^A ρ^B ρ^C → 𝓡[ `val V ] ρ^A ρ^B ρ^C
+
+    R⟦$⟧  :  ∀ {Γ Δ Θ} {σ τ} {f : Val (σ `→ τ) Γ} {a}
+             {ρ^A : (Γ -Env) 𝓥^A Δ} {ρ^B : (Δ -Env) 𝓥^B Θ}
+             {ρ^C : (Γ -Env) 𝓥^C Θ} →
+             𝓡 f ρ^A ρ^B ρ^C → 𝓡 a ρ^A ρ^B ρ^C → 𝓡[ f `$ a ] ρ^A ρ^B ρ^C
+
+
+    R⟦if⟧ :  ∀ {Γ Δ Θ} {σ} {b} {l r : Trm σ Γ}
+             {ρ^A : (Γ -Env) 𝓥^A Δ} {ρ^B : (Δ -Env) 𝓥^B Θ}
+             {ρ^C : (Γ -Env) 𝓥^C Θ} →
+             𝓡 b ρ^A ρ^B ρ^C → 𝓡 l ρ^A ρ^B ρ^C → 𝓡 r ρ^A ρ^B ρ^C →
+             𝓡[ `if b l r ] ρ^A ρ^B ρ^C
+
+    R⟦let⟧ :  ∀ {Γ Δ Θ} {σ τ} {M : Trm σ Γ} {N : Trm τ (Γ ∙ σ)}
+              {ρ^A : (Γ -Env) 𝓥^A Δ} {ρ^B : (Δ -Env) 𝓥^B Θ}
+              {ρ^C : (Γ -Env) 𝓥^C Θ}
+              (rM : 𝓡 M ρ^A ρ^B ρ^C) →
+              (rN : ∀ {Θ} {u^B : 𝓥^B σ Θ} {u^C : 𝓥^C σ Θ} →
+                  ∀ inc → rmodel 𝓥^R-BC u^B u^C →
+                    let ρ^A′ = th^A ρ^A weak `∙ varₐ₀
+                        ρ^B′ = ext^B ρ^B inc u^B
+                        ρ^C′ = ext^C ρ^C inc u^C
+                    in 𝓡 N ρ^A′ ρ^B′ ρ^C′) →
+              𝓡[ `let M N ] ρ^A ρ^B ρ^C
+
+module Fuse {ℓ^A ℓ^L ℓ^B ℓ^M ℓ^C ℓ^N ℓ^RVBC ℓ^RV ℓ^RT : Level}
+ {𝓥^A : PreModel ℓ^A} {Θ^A : Model 𝓥^A} {𝓔^A : {f : CBV} → PreModel ℓ^L}
+ {𝓥^B : PreModel ℓ^B} {Θ^B : Model 𝓥^B} {𝓔^B : {f : CBV} → PreModel ℓ^M}
+ {𝓥^C : PreModel ℓ^C} {Θ^C : Model 𝓥^C} {𝓔^C : {f : CBV} → PreModel ℓ^N}
+
+ {var^A : Morphism Θ^A (𝓔^A {`val})} -- injection of variables into
+                                         -- values.
+ {val^A : PreMorphism (𝓔^A {`val}) (𝓔^A {`trm})} -- values to term
+                                                         -- injection.
+ -- Analogous maps for 𝓔^B and 𝓔^C.
+ {var^B : Morphism Θ^B (𝓔^B {`val})}
+ {val^B : PreMorphism (𝓔^B {`val}) (𝓔^B {`trm})}
+
+ {var^C : Morphism Θ^C (𝓔^C {`val})}
+ {val^C : PreMorphism (𝓔^C {`val}) (𝓔^C {`trm})}
+
+ (𝓢^A : Semantics {Θ = Θ^A} {𝓔 = λ {f} → 𝓔^A {f}} var^A val^A)
+ (𝓢^B : Semantics {Θ = Θ^B} {𝓔 = λ {f} → 𝓔^B {f}} var^B val^B)
+ (𝓢^C : Semantics {Θ = Θ^C} {𝓔 = λ {f} → 𝓔^C {f}} var^C val^C)
+
+ (𝓥^R-BC : RPreModel 𝓥^B 𝓥^C ℓ^RVBC)
+
+ (𝓥^R : {Γ Δ Θ : Cx} →
+         (Γ -Env) 𝓥^A Δ → (Δ -Env) 𝓥^B Θ → (Γ -Env) 𝓥^C Θ → Set (ℓ^RV))
+
+ (𝓔^R : {f : CBV} → RPreModel (𝓔^B {f}) (𝓔^C {f}) ℓ^RT)
+
+ (𝓕 : Fusion 𝓢^A 𝓢^B 𝓢^C 𝓥^R-BC 𝓥^R 𝓔^R)
+ where
+
+   open Fusion 𝓕
+
+   lemma : ∀ {f} {Γ Δ Θ} {σ} (E : Exp {f} σ Γ) →
+          {ρ^A : (Γ -Env) 𝓥^A Δ} {ρ^B : (Δ -Env) 𝓥^B Θ}
+          {ρ^C : (Γ -Env) 𝓥^C Θ} → 𝓡[ E ] ρ^A ρ^B ρ^C
+
+   lemma (`var v) ρ^R = R⟦var⟧ v ρ^R
+   lemma (`b b) ρ^R = R⟦b⟧ b ρ^R
+   lemma {`val} (`λ M) {ρ^A} {ρ^B} {ρ^C} ρ^R =
+     R⟦λ⟧ {M = M}
+          (λ inc u^R →
+             lemma M (𝓥^R∙ (𝓥^Rth {ρ^A = ρ^A} {ρ^B} {ρ^C} inc) u^R)) ρ^R
+   lemma (`val V) ρ^R = R⟦val⟧ {V = V} (lemma V ρ^R) ρ^R
+   lemma (f `$ a) ρ^R = R⟦$⟧ {f = f} {a = a} F A ρ^R
+     where F = lemma f ρ^R ; A = lemma a ρ^R
+   lemma (`if b l r) ρ^R = R⟦if⟧ {b = b} {l} {r} B L R ρ^R
+     where B = lemma b ρ^R ; L = lemma l ρ^R ; R = lemma r ρ^R
+   lemma (`let M N) {ρ^A} {ρ^B} {ρ^C} ρ^R =
+     R⟦let⟧ {M = M} {N = N} (lemma M ρ^R)
+            (λ inc u^R →
+               lemma N (𝓥^R∙ (𝓥^Rth {ρ^A = ρ^A} {ρ^B} {ρ^C} inc) u^R)) ρ^R
