@@ -18,6 +18,10 @@ record RPreModel {ℓ^A ℓ^B : Level} (𝓔^A : PreModel ℓ^A) (𝓔^B : PreMo
   field rmodel : {σ : Ty} → [ 𝓔^A σ ⟶ 𝓔^B σ ⟶ const (Set ℓ^R) ]
 open RPreModel public
 
+-- Special case of a relational model built on propositional equality.
+PropEq : {C : PreModel L.zero} → RPreModel C C L.zero
+PropEq = mkRPreModel _≡_
+
 -- The pointwise lifting of a relational premodel to contexts.
 record `∀[_] {ℓ^A ℓ^B ℓ^R : Level}
       {𝓔^A : PreModel ℓ^A} {𝓔^B : PreModel ℓ^B} (𝓔^R : RPreModel 𝓔^A 𝓔^B ℓ^R)
@@ -278,6 +282,7 @@ record Fusion {ℓ^A ℓ^L ℓ^B ℓ^M ℓ^C ℓ^N ℓ^RVBC ℓ^RV ℓ^RT : Leve
 
     𝓥^Rth : ∀ {Γ Δ Θ} {ρ^A : (Γ -Env) 𝓥^A Δ} {ρ^B : (Δ -Env) 𝓥^B Θ}
             {ρ^C : (Γ -Env) 𝓥^C Θ} {Ξ : Cx} (inc : Θ ⊆ Ξ) →
+            𝓥^R ρ^A ρ^B ρ^C →
             𝓥^R ρ^A (th^B ρ^B inc) (th^C ρ^C inc)
 
     R⟦b⟧  :  ∀ {Γ Δ Θ} {β} → (b : ⟦ β ⟧B) →
@@ -368,16 +373,65 @@ module Fuse {ℓ^A ℓ^L ℓ^B ℓ^M ℓ^C ℓ^N ℓ^RVBC ℓ^RV ℓ^RT : Level}
 
    lemma (`var v) ρ^R = R⟦var⟧ v ρ^R
    lemma (`b b) ρ^R = R⟦b⟧ b ρ^R
-   lemma {`val} (`λ M) {ρ^A} {ρ^B} {ρ^C} ρ^R =
-     R⟦λ⟧ {M = M}
-          (λ inc u^R →
-             lemma M (𝓥^R∙ (𝓥^Rth {ρ^A = ρ^A} {ρ^B} {ρ^C} inc) u^R)) ρ^R
+   lemma {`val} (`λ M) ρ^R =
+     R⟦λ⟧ {M = M} (λ inc u^R → lemma M (𝓥^R∙ (𝓥^Rth inc ρ^R) u^R)) ρ^R
    lemma (`val V) ρ^R = R⟦val⟧ {V = V} (lemma V ρ^R) ρ^R
    lemma (f `$ a) ρ^R = R⟦$⟧ {f = f} {a = a} F A ρ^R
      where F = lemma f ρ^R ; A = lemma a ρ^R
    lemma (`if b l r) ρ^R = R⟦if⟧ {b = b} {l} {r} B L R ρ^R
      where B = lemma b ρ^R ; L = lemma l ρ^R ; R = lemma r ρ^R
-   lemma (`let M N) {ρ^A} {ρ^B} {ρ^C} ρ^R =
+   lemma (`let M N) ρ^R =
      R⟦let⟧ {M = M} {N = N} (lemma M ρ^R)
-            (λ inc u^R →
-               lemma N (𝓥^R∙ (𝓥^Rth {ρ^A = ρ^A} {ρ^B} {ρ^C} inc) u^R)) ρ^R
+            (λ inc u^R → lemma N (𝓥^R∙ (𝓥^Rth inc ρ^R) u^R)) ρ^R
+
+-- Syntactic fusion results require much fewer assumptions.
+record SyntacticFusion {ℓ^A ℓ^B ℓ^C ℓ^RVBC ℓ^RV : Level}
+ {𝓥^A : PreModel ℓ^A} {Θ^A : Model 𝓥^A} {mod^A : Model₀ Θ^A}
+ {𝓥^B : PreModel ℓ^B} {Θ^B : Model 𝓥^B} {mod^B : Model₀ Θ^B}
+ {𝓥^C : PreModel ℓ^C} {Θ^C : Model 𝓥^C} {mod^C : Model₀ Θ^C}
+
+ {var^A : Morphism Θ^A Val} -- injection of variables into
+                            -- values.
+ -- Analogous maps for 𝓔^B and 𝓔^C.
+ {var^B : Morphism Θ^B (Exp {`val})}
+ {var^C : Morphism Θ^C Val}
+
+ (𝓥^R-BC : RPreModel 𝓥^B 𝓥^C ℓ^RVBC)
+ (𝓥^R : {Γ Δ Θ : Cx} →
+         (Γ -Env) 𝓥^A Δ → (Δ -Env) 𝓥^B Θ → (Γ -Env) 𝓥^C Θ → Set (ℓ^RV))
+
+ : Set (ℓ^RV ⊔ ℓ^RVBC ⊔ ℓ^A ⊔ ℓ^B ⊔ ℓ^C)
+ where
+  th^A  = Thin.th Θ^A
+  th^B  = Thin.th Θ^B
+  th^C  = Thin.th Θ^C
+  ext^A  = Thin.ext Θ^A
+  ext^B  = Thin.ext Θ^B
+  ext^C  = Thin.ext Θ^C
+  sem^A = Eval.sem (syntactic mod^A {var^A})
+  sem^B = Eval.sem (syntactic mod^B {var^B})
+  sem^C = Eval.sem (syntactic mod^C {var^C})
+
+  𝓡 : ∀ {f} {Γ Δ Θ} {σ} → Exp {f} σ Γ →
+      (Γ -Env) 𝓥^A Δ → (Δ -Env) 𝓥^B Θ → (Γ -Env) 𝓥^C Θ → Set
+  𝓡 {f} E ρ^A ρ^B ρ^C = sem^B ρ^B (sem^A ρ^A E) ≡ sem^C ρ^C E
+
+  𝓡[_] : ∀ {f} {Γ Δ Θ} {σ} → Exp {f} σ Γ →
+         (Γ -Env) 𝓥^A Δ → (Δ -Env) 𝓥^B Θ → (Γ -Env) 𝓥^C Θ → Set (ℓ^RV)
+  𝓡[_] E ρ^A ρ^B ρ^C = 𝓥^R ρ^A ρ^B ρ^C → 𝓡 E ρ^A ρ^B ρ^C
+
+  field
+    𝓥^R∙ : ∀ {Γ Δ Θ} {σ} {ρ^A : (Γ -Env) 𝓥^A Δ} {ρ^B : (Δ -Env) 𝓥^B Θ}
+           {ρ^C : (Γ -Env) 𝓥^C Θ} {u^B : 𝓥^B σ Θ} {u^C} →
+           𝓥^R ρ^A ρ^B ρ^C → rmodel 𝓥^R-BC u^B u^C →
+           𝓥^R (th^A ρ^A weak `∙ Model₀.var₀ mod^A) (ρ^B `∙ u^B) (ρ^C `∙ u^C)
+
+    𝓥^Rth : ∀ {Γ Δ Θ} {ρ^A : (Γ -Env) 𝓥^A Δ} {ρ^B : (Δ -Env) 𝓥^B Θ}
+            {ρ^C : (Γ -Env) 𝓥^C Θ} {Ξ : Cx} (inc : Θ ⊆ Ξ) →
+            𝓥^R ρ^A ρ^B ρ^C →
+            𝓥^R ρ^A (th^B ρ^B inc) (th^C ρ^C inc)
+
+    ⟦var⟧ : ∀ {Γ Δ Θ} {σ} → (v : Var σ Γ) →
+            {ρ^A : (Γ -Env) 𝓥^A Δ} {ρ^B : (Δ -Env) 𝓥^B Θ}
+            {ρ^C : (Γ -Env) 𝓥^C Θ} →
+            𝓡[ `var v ] ρ^A ρ^B ρ^C
