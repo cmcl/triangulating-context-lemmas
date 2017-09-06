@@ -62,6 +62,46 @@ ren-ext : ∀ {f} {Γ Δ} {σ} → (E : Exp {f} σ Γ) →
 ren-ext E relr = lemma E (env^R relr)
  where open Simulate Ren-ext-sim
 
+-- Syntactic fusion result
+syntacticFusion : {ℓ^A ℓ^B ℓ^C ℓ^RVBC ℓ^RV : Level}
+ {𝓥^A : PreModel ℓ^A} {Θ^A : Model 𝓥^A} {mod^A : Model₀ Θ^A}
+ {𝓥^B : PreModel ℓ^B} {Θ^B : Model 𝓥^B} {mod^B : Model₀ Θ^B}
+ {𝓥^C : PreModel ℓ^C} {Θ^C : Model 𝓥^C} {mod^C : Model₀ Θ^C}
+ {var^A : Morphism Θ^A Val}
+ {var^B : Morphism Θ^B Val}
+ {var^C : Morphism Θ^C Val}
+ {𝓥^R-BC : RPreModel 𝓥^B 𝓥^C ℓ^RVBC}
+ {𝓥^R : {Γ Δ Θ : Cx} →
+         (Γ -Env) 𝓥^A Δ → (Δ -Env) 𝓥^B Θ → (Γ -Env) 𝓥^C Θ → Set (ℓ^RV)} →
+ SyntacticFusion {𝓥^A = 𝓥^A} {Θ^A} {mod^A} {𝓥^B} {Θ^B} {mod^B}
+                 {𝓥^C} {Θ^C} {mod^C} {var^A} {var^B} {var^C}
+                 𝓥^R-BC 𝓥^R →
+ Fusion {var^A = var^A} {var^B = var^B} {var^C = var^C}
+        (syntactic mod^A) (syntactic mod^B) (syntactic mod^C)
+        𝓥^R-BC 𝓥^R PropEq
+syntacticFusion synF = record
+  {
+  reifyₐ = id
+  ;
+  𝓥^R∙ = 𝓥^R∙
+  ;
+  𝓥^Rth = 𝓥^Rth
+  ;
+  R⟦b⟧ = λ b _ → PEq.refl {x = `b b}
+  ;
+  R⟦var⟧ = R⟦var⟧
+  ;
+  R⟦λ⟧ = λ L _ → PEq.cong λλ (L weak var₀-BC)
+  ;
+  R⟦val⟧ = λ V _ → PEq.cong Val→Trm V
+  ;
+  R⟦$⟧ = λ F A _ → PEq.cong₂ _`$_ F A
+  ;
+  R⟦if⟧ = λ B L R _ → PEq.cong₂ (uncurry `if) (PEq.cong₂ _,_ B L) R
+  ;
+  R⟦let⟧ = λ M N _ → PEq.cong₂ `let M (N weak var₀-BC)
+  } where open SyntacticFusion synF
+
 -- composition of valuations: sub-sub fusion
 _*-Sub_ : ∀ {Γ Δ Ξ} → (ρ : Δ ⊨ Ξ) → (ρ' : Γ ⊨ Δ) → Γ ⊨ Ξ
 ρ *-Sub ρ' = map-Env (ρ *-Val_) ρ'

@@ -393,7 +393,7 @@ record SyntacticFusion {ℓ^A ℓ^B ℓ^C ℓ^RVBC ℓ^RV : Level}
  {var^A : Morphism Θ^A Val} -- injection of variables into
                             -- values.
  -- Analogous maps for 𝓔^B and 𝓔^C.
- {var^B : Morphism Θ^B (Exp {`val})}
+ {var^B : Morphism Θ^B Val}
  {var^C : Morphism Θ^C Val}
 
  (𝓥^R-BC : RPreModel 𝓥^B 𝓥^C ℓ^RVBC)
@@ -431,7 +431,11 @@ record SyntacticFusion {ℓ^A ℓ^B ℓ^C ℓ^RVBC ℓ^RV : Level}
             𝓥^R ρ^A ρ^B ρ^C →
             𝓥^R ρ^A (th^B ρ^B inc) (th^C ρ^C inc)
 
-    ⟦var⟧ : ∀ {Γ Δ Θ} {σ} → (v : Var σ Γ) →
-            {ρ^A : (Γ -Env) 𝓥^A Δ} {ρ^B : (Δ -Env) 𝓥^B Θ}
-            {ρ^C : (Γ -Env) 𝓥^C Θ} →
-            𝓡[ `var v ] ρ^A ρ^B ρ^C
+    R⟦var⟧ : ∀ {Γ Δ Θ} {σ} → (v : Var σ Γ) →
+             {ρ^A : (Γ -Env) 𝓥^A Δ} {ρ^B : (Δ -Env) 𝓥^B Θ}
+             {ρ^C : (Γ -Env) 𝓥^C Θ} →
+             𝓡[ `var v ] ρ^A ρ^B ρ^C
+
+    var₀-BC : {Γ : Cx} {σ : Ty} →
+              rmodel 𝓥^R-BC {σ} {Γ ∙ σ}
+                     (Model₀.var₀ mod^B) (Model₀.var₀ mod^C)
