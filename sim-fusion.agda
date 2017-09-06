@@ -386,15 +386,15 @@ module Fuse {ℓ^A ℓ^L ℓ^B ℓ^M ℓ^C ℓ^N ℓ^RVBC ℓ^RV ℓ^RT : Level}
 
 -- Syntactic fusion results require much fewer assumptions.
 record SyntacticFusion {ℓ^A ℓ^B ℓ^C ℓ^RVBC ℓ^RV : Level}
- {𝓥^A : PreModel ℓ^A} {Θ^A : Model 𝓥^A} {mod^A : Model₀ Θ^A}
- {𝓥^B : PreModel ℓ^B} {Θ^B : Model 𝓥^B} {mod^B : Model₀ Θ^B}
- {𝓥^C : PreModel ℓ^C} {Θ^C : Model 𝓥^C} {mod^C : Model₀ Θ^C}
+ {𝓥^A : PreModel ℓ^A} {Θ^A : Model 𝓥^A} (mod^A : Model₀ Θ^A)
+ {𝓥^B : PreModel ℓ^B} {Θ^B : Model 𝓥^B} (mod^B : Model₀ Θ^B)
+ {𝓥^C : PreModel ℓ^C} {Θ^C : Model 𝓥^C} (mod^C : Model₀ Θ^C)
 
- {var^A : Morphism Θ^A Val} -- injection of variables into
+ (var^A : Morphism Θ^A Val) -- injection of variables into
                             -- values.
  -- Analogous maps for 𝓔^B and 𝓔^C.
- {var^B : Morphism Θ^B Val}
- {var^C : Morphism Θ^C Val}
+ (var^B : Morphism Θ^B Val)
+ (var^C : Morphism Θ^C Val)
 
  (𝓥^R-BC : RPreModel 𝓥^B 𝓥^C ℓ^RVBC)
  (𝓥^R : {Γ Δ Θ : Cx} →
@@ -421,9 +421,10 @@ record SyntacticFusion {ℓ^A ℓ^B ℓ^C ℓ^RVBC ℓ^RV : Level}
   𝓡[_] E ρ^A ρ^B ρ^C = 𝓥^R ρ^A ρ^B ρ^C → 𝓡 E ρ^A ρ^B ρ^C
 
   field
-    𝓥^R∙ : ∀ {Γ Δ Θ} {σ} {ρ^A : (Γ -Env) 𝓥^A Δ} {ρ^B : (Δ -Env) 𝓥^B Θ}
-           {ρ^C : (Γ -Env) 𝓥^C Θ} {u^B : 𝓥^B σ Θ} {u^C} →
-           𝓥^R ρ^A ρ^B ρ^C → rmodel 𝓥^R-BC u^B u^C →
+    𝓥^R∙ : ∀ {Γ Δ Θ : Cx} {σ : Ty}
+           {ρ^A : (Γ -Env) 𝓥^A Δ} {ρ^B : (Δ -Env) 𝓥^B Θ}
+           {ρ^C : (Γ -Env) 𝓥^C Θ} {u^B : 𝓥^B σ Θ} {u^C : 𝓥^C σ Θ} →
+           (ρ^R : 𝓥^R ρ^A ρ^B ρ^C) → (u^R : rmodel 𝓥^R-BC u^B u^C) →
            𝓥^R (th^A ρ^A weak `∙ Model₀.var₀ mod^A) (ρ^B `∙ u^B) (ρ^C `∙ u^C)
 
     𝓥^Rth : ∀ {Γ Δ Θ} {ρ^A : (Γ -Env) 𝓥^A Δ} {ρ^B : (Δ -Env) 𝓥^B Θ}

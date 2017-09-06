@@ -73,9 +73,7 @@ syntacticFusion : {ℓ^A ℓ^B ℓ^C ℓ^RVBC ℓ^RV : Level}
  {𝓥^R-BC : RPreModel 𝓥^B 𝓥^C ℓ^RVBC}
  {𝓥^R : {Γ Δ Θ : Cx} →
          (Γ -Env) 𝓥^A Δ → (Δ -Env) 𝓥^B Θ → (Γ -Env) 𝓥^C Θ → Set (ℓ^RV)} →
- SyntacticFusion {𝓥^A = 𝓥^A} {Θ^A} {mod^A} {𝓥^B} {Θ^B} {mod^B}
-                 {𝓥^C} {Θ^C} {mod^C} {var^A} {var^B} {var^C}
-                 𝓥^R-BC 𝓥^R →
+ SyntacticFusion mod^A mod^B mod^C var^A var^B var^C 𝓥^R-BC 𝓥^R →
  Fusion {var^A = var^A} {var^B = var^B} {var^C = var^C}
         (syntactic mod^A) (syntactic mod^B) (syntactic mod^C)
         𝓥^R-BC 𝓥^R PropEq
@@ -101,6 +99,33 @@ syntacticFusion synF = record
   ;
   R⟦let⟧ = λ M N _ → PEq.cong₂ `let M (N weak var₀-BC)
   } where open SyntacticFusion synF
+
+ren-sub-R∙ : ∀ {Γ Δ Θ} {σ} →
+  {r : Γ ⊆ Δ} → {ρ^B : Δ ⊨ Θ} → {ρ^C : Γ ⊨ Θ} → {u^B u^C : Val σ Θ} →
+  (ρ^R : ∀ {τ} v → var ρ^B {τ} (var r v) ≡ var ρ^C v) →
+  (u^R : u^B ≡ u^C) →
+  ∀ {τ} v → var (ρ^B `∙ u^B) {τ} (var (ext₀^Var r) v) ≡ var (ρ^C `∙ u^C) v
+ren-sub-R∙ {Γ} {Δ} {Θ} {σ} {r} {ρ^B} {ρ^C} {u^B} {u^C} ρ^R eq =
+  [ P ][ eq ,,, ρ^R ]
+  where P = λ {τ} v →
+              var (ρ^B `∙ u^B) {τ} (var (ext₀^Var r) v) ≡ var (ρ^C `∙ u^C) v
+
+-- Ren-Sub fusion
+Ren-sub-fusion :
+  SyntacticFusion 𝓥ar₀ 𝓥al₀ 𝓥al₀ Var→Val Val→Val Val→Val
+                  PropEq
+                  (λ ρ^A ρ^B ρ^C →
+                     ∀ {τ} v → var ρ^B (var ρ^A {τ} v) ≡ var ρ^C v)
+Ren-sub-fusion = record
+  {
+  𝓥^R∙ = ren-sub-R∙
+  ;
+  𝓥^Rth = λ inc ρ^R v → PEq.cong (inc *-Var_) (ρ^R v)
+  ;
+  R⟦var⟧ = λ v ρ^R → PEq.cong (Morphism.inj Val→Val) (ρ^R v)
+  ;
+  var₀-BC = PEq.refl
+  }
 
 -- composition of valuations: sub-sub fusion
 _*-Sub_ : ∀ {Γ Δ Ξ} → (ρ : Δ ⊨ Ξ) → (ρ' : Γ ⊨ Δ) → Γ ⊨ Ξ
