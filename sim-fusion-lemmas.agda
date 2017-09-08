@@ -198,15 +198,36 @@ Sub-ren-fusion =
 _*-Sub_ : ∀ {Γ Δ Ξ} → (ρ : Δ ⊨ Ξ) → (ρ' : Γ ⊨ Δ) → Γ ⊨ Ξ
 ρ *-Sub ρ' = map-Env (ρ *-Val_) ρ'
 
+sub-sub-R∙ : ∀ {Γ Δ Θ} {σ} →
+  {ρ^A : Γ ⊨ Δ} → {ρ^B : Δ ⊨ Θ} → {ρ^C : Γ ⊨ Θ} →
+  {u^B u^C : Val σ Θ} →
+  (ρ^R : ∀ {τ} v → subst (var ρ^A {τ} v) ρ^B ≡ var ρ^C v) →
+  (u^R : u^B ≡ u^C) →
+  ∀ {τ} v → subst (var (ext₀^Env ρ^A) {τ} v) (ρ^B `∙ u^B) ≡ var (ρ^C `∙ u^C) v
+sub-sub-R∙ {Γ} {Δ} {Θ} {σ} {ρ^A} {ρ^B} {ρ^C} {u^B} {u^C} ρ^R eq =
+  let module RenSub = Fuse (syntacticFusion Ren-sub-fusion) in
+  [ P ][ eq ,,, (λ v →
+                   PEq.trans (RenSub.lemma (var ρ^A v) {ρ^A = weak}
+                                          {ρ^B = ρ^B `∙ u^B} (λ v → PEq.refl))
+                                          (ρ^R v)) ]
+  where P = λ {τ} v →
+            subst (var (ext₀^Env ρ^A) {τ} v) (ρ^B `∙ u^B) ≡ var (ρ^C `∙ u^C) v
+
 Sub-sub-fusion :
   SyntacticFusion 𝓥al₀ 𝓥al₀ 𝓥al₀ Val→Val Val→Val Val→Val PropEq
                   (λ ρ^A ρ^B ρ^C →
                      ∀ {τ} v → subst (var ρ^A {τ} v) ρ^B ≡ var ρ^C v)
-Sub-sub-fusion = record
+Sub-sub-fusion =
+  let module SubRen = Fuse (syntacticFusion Sub-ren-fusion) in
+  record
   {
-  𝓥^R∙ = {!!}
+  𝓥^R∙ = λ {Γ} {Δ} {Θ} {σ} {ρ^A} {ρ^B} {ρ^C} ρ^R u^R →
+           sub-sub-R∙ {ρ^A = ρ^A} {ρ^B} {ρ^C} ρ^R u^R
   ;
-  𝓥^Rth = λ inc ρ^R v → {!!}
+  𝓥^Rth = λ {Γ} {Δ} {Θ} {ρ^A} {ρ^B} {ρ^C} inc ρ^R v →
+            PEq.trans (PEq.sym (SubRen.lemma (var ρ^A v) {ρ^A = ρ^B}
+                                             {ρ^B = inc} (λ v → PEq.refl)))
+                      (PEq.cong (inc *-Var_) (ρ^R v))
   ;
   R⟦var⟧ = λ v ρ^R → ρ^R v
   ;
