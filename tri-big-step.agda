@@ -13,6 +13,7 @@ open import Relation.Binary.PropositionalEquality as PEq using (_≡_)
 open import lambda-fg
 open import acmm
 open import relations
+open import sim-fusion-lemmas
 open import big-step-prop
 open import vcc-apx
 open import asc-apx
@@ -192,7 +193,6 @@ lemma-2-11-ASC {f} =
   prfT {τ} {M} {N} sMN with lemma-2-11O-ASC sMN ι^Env
   ... | prf rewrite ι^Env₀ M | ι^Env₀ N = prf
 
-{-
 -- Logical simulation
 log-sim₀ : GRel₀^E
 log-sim₀^V : GRel₀^V
@@ -553,7 +553,7 @@ ren-bar {`val} {Γ} {Δ} {Ξ} {ω = ω} (`λ {ν} P) V M r zero prf
 ... | ih rewrite ren-ren (barC P) M swp (ext₀^Var r) | ih = PEq.refl
 ren-bar {Ξ = Ξ} (`exp E) V M r zero prf
   rewrite PEq.sym (lemma33-ren r weak E) =
-  ren-sub E (weak *-Env r) (push Ξ (ι^Env `∙ ren V Ren₀)) prf
+  ι^Var^Env-lemma-aux E (weak *-Env r) (push Ξ (ι^Env `∙ ren V Ren₀)) prf
 ren-bar {`trm} {Γ} {Δ} {Ξ} {ω = ω} ⟪- ρ -⟫ V M r zero prf =
  ren-sub-prop M (pop! ρ *-Env r) ρ (push Ξ (ι^Env `∙ ren V Ren₀))
               (ι^Env `∙ ren V Ren₀)
@@ -648,7 +648,8 @@ sim-appT₀ {Γ} {σ} {τ} {M} {N} ρ sMN U {ν} P
   with ren-sub-prop (Ren₀ *-Var U)
                     (weak {σ = σ `→ τ}) weak (ext₀^Env ρ) ρ
                     (ext₀^Env-weak-comm ρ)
-... | ren-sub-comm rewrite ren-sub-comm with ren-sub U Ren₀ ρ (λ())
+... | ren-sub-comm rewrite ren-sub-comm
+  with ι^Var^Env-lemma-aux U Ren₀ ρ (λ())
 ... | sub-Ren₀ rewrite sub-Ren₀ = subst-sim
 
 lemma-2-6O-VCC : ∀ {Γ} {τ} {M N} → vcc-sim M N →
@@ -836,4 +837,4 @@ vcc-sim→cxt-sim^T {Γ} {τ} {M} {N} sMN with vcc-sim→app-cxt-sim^T sMN
 asc-sim→cxt-sim^T : ∀ {Γ} {τ} {M N} → asc-sim M N → cxt-sim {`trm} {Γ} {τ} M N
 asc-sim→cxt-sim^T {Γ} {τ} {M} {N} sMN with asc-sim→app-cxt-sim^T sMN
 ... | sMN-ACS = app-cxt-sim→cxt-sim^T sMN-ACS
--}
+

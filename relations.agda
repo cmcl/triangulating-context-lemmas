@@ -8,6 +8,7 @@ open import Relation.Binary.PropositionalEquality as PEq using (_≡_)
 
 open import lambda-fg
 open import acmm
+open import sim-fusion-lemmas
 
 {---------------}
 {-- Relations --}

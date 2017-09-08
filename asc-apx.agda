@@ -11,6 +11,7 @@ open import Relation.Binary.PropositionalEquality as PEq using (_≡_)
 open import lambda-fg
 open import acmm
 open import relations
+open import sim-fusion-lemmas
 open import obs-apx
 open import vcc-apx
 open import big-step-prop

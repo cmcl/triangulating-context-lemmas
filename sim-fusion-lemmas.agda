@@ -236,15 +236,8 @@ Sub-sub-fusion =
 
 lemma33 : ∀ {f} {Γ Δ Ξ} {σ} → (ρ : Δ ⊨ Ξ) → (ρ' : Γ ⊨ Δ) → (E : Exp {f} σ Γ) →
  ((ρ *-Sub ρ') *-Val E) ≡ (ρ *-Val (ρ' *-Val E))
-lemma33 ρ ρ' (`var v) = PEq.refl
-lemma33 ρ ρ' (`b b)  = PEq.refl
-lemma33 ρ ρ' (`λ M)  = PEq.cong λλ (lemma33 (ext₀^Env ρ) (ext₀^Env ρ') M)
-lemma33 ρ ρ' (`val V) rewrite lemma33 ρ ρ' V = PEq.refl
-lemma33 ρ ρ' (f `$ a) rewrite lemma33 ρ ρ' f | lemma33 ρ ρ' a = PEq.refl
-lemma33 ρ ρ' (`if b l r) rewrite lemma33 ρ ρ' b | lemma33 ρ ρ' l |
-                                 lemma33 ρ ρ' r = PEq.refl
-lemma33 ρ ρ'  (`let M N) rewrite lemma33 ρ ρ' M =
-  PEq.cong (`let _) (lemma33 (ext₀^Env ρ) (ext₀^Env ρ') N)
+lemma33 ρ ρ' E = PEq.sym (lemma E {ρ^A = ρ'} {ρ^B = ρ} (λ v → PEq.refl))
+  where open Fuse (syntacticFusion Sub-sub-fusion)
 
 infixl 10 _⟨_/var₀⟩
 
@@ -257,17 +250,8 @@ lemma34 E ρ U = lemma33 (ι^Env `∙ U) (ext₀^Env ρ) E
 
 lemma33-ren : ∀ {f} {Γ Δ Ξ} {σ} → (r : Δ ⊆ Ξ) → (r' : Γ ⊆ Δ) →
   (E : Exp {f} σ Γ) → (trans^Var r' r *-Var E) ≡ (r *-Var (r' *-Var E))
-lemma33-ren r r' (`var v) = PEq.refl
-lemma33-ren r r' (`b b)  = PEq.refl
-lemma33-ren r r' (`λ M)  =
-  PEq.cong λλ (lemma33-ren (ext₀^Var r) (ext₀^Var r') M)
-lemma33-ren r r' (`val V) rewrite lemma33-ren r r' V = PEq.refl
-lemma33-ren r r' (f `$ a) rewrite lemma33-ren r r' f | lemma33-ren r r' a =
-  PEq.refl
-lemma33-ren r r' (`if B L R) rewrite lemma33-ren r r' B | lemma33-ren r r' L |
-                                 lemma33-ren r r' R = PEq.refl
-lemma33-ren r r'  (`let M N) rewrite lemma33-ren r r' M =
-  PEq.cong (`let _) (lemma33-ren (ext₀^Var r) (ext₀^Var r') N)
+lemma33-ren r r' E = PEq.sym (lemma E {ρ^A = r'} {ρ^B = r} (λ v → PEq.refl))
+  where open Fuse (syntacticFusion Ren-ren-fusion)
 
 ext₀^Var-ext : ∀ {Γ Δ} {σ} → {r r' : Γ ⊆ Δ} →
                  (∀ {τ} v → var r {τ} v ≡ var r' v) →
@@ -287,22 +271,16 @@ ext₀^Env^Var-ext₀ {Γ} {Δ} {σ} {r} {ρ} eq =
     P = λ {τ} v → var (ext₀^Env {σ} {Δ} ρ) {τ} (var (ext₀^Var r) v) ≡ `var v
 
 -- TODO: Come up with a more informative name for this lemma.
-ren-sub : ∀ {f} {Γ Δ} {σ} → (E : Exp {f} σ Γ) → (r : Γ ⊆ Δ) → (ρ : Δ ⊨ Γ) →
+ι^Var^Env-lemma-aux :
+  ∀ {f} {Γ Δ} {σ} → (E : Exp {f} σ Γ) → (r : Γ ⊆ Δ) → (ρ : Δ ⊨ Γ) →
   (∀ {τ} v → var ρ {τ} (var r v) ≡ `var v) →
   subst (r *-Var E) ρ ≡ E
-ren-sub (`var v) r ρ prf = prf v
-ren-sub (`b b) r ρ prf = PEq.refl
-ren-sub (`λ M) r ρ prf
-  with ren-sub M (ext₀^Var r) (ext₀^Env ρ) (ext₀^Env^Var-ext₀ {ρ = ρ} prf)
-... | ih rewrite ih = PEq.refl
-ren-sub (`val M) r ρ prf rewrite ren-sub M r ρ prf = PEq.refl
-ren-sub (F `$ A) r ρ prf
-  rewrite ren-sub F r ρ prf | ren-sub A r ρ prf = PEq.refl
-ren-sub (`if B L R) r ρ prf
-  rewrite ren-sub B r ρ prf | ren-sub L r ρ prf | ren-sub R r ρ prf = PEq.refl
-ren-sub (`let M N) r ρ prf rewrite ren-sub M r ρ prf
-  with ren-sub N (ext₀^Var r) (ext₀^Env ρ) (ext₀^Env^Var-ext₀ {ρ = ρ} prf)
-... | ih rewrite ih = PEq.refl
+ι^Var^Env-lemma-aux E r ρ eq = prf
+  where open Fuse (syntacticFusion Ren-sub-fusion)
+
+        prf : subst (r *-Var E) ρ ≡ E
+        prf with lemma E {ρ^A = r} {ρ} eq
+        ... | hyp rewrite ι^Env-lemma-aux (λ v → PEq.refl) E = hyp
 
 -- weakening commutes with renaming by extension.
 weak-ext₀^Var-comm : ∀ {Γ Δ} {σ} {r : Γ ⊆ Δ} →
@@ -352,7 +330,7 @@ ren-sub-prop (`let M N) r r' ρ ρ' prf
           ren-sub-prop N (ext₀^Var r) (ext₀^Var r') (ext₀^Env ρ) (ext₀^Env ρ')
                       (ext₀^Env-ext^Var {r = r} {r'} {ρ} {ρ'} prf)= PEq.refl
 
--- Special case of ren-sub: weakening and a single substition.
+-- Special case of ι^Var^Env: weakening and a single substition.
 weak-sub : ∀ {f} {Γ} {σ τ} → (V : Val τ Γ) → (E : Exp {f} σ Γ) →
   (weak *-Var E) ⟨ V /var₀⟩ ≡ E
-weak-sub V E = ren-sub E weak (ι^Env `∙ V) (λ v → PEq.refl)
+weak-sub V E = ι^Var^Env-lemma-aux E weak (ι^Env `∙ V) (λ v → PEq.refl)

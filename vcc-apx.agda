@@ -13,6 +13,7 @@ open import lambda-fg
 open import acmm
 open import obs-apx
 open import relations
+open import sim-fusion-lemmas
 open import big-step-prop
 
 -- Contexts; contextual equivalence; the intricate stuff

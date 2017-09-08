@@ -11,6 +11,7 @@ open import Relation.Binary.PropositionalEquality as PEq using (_≡_)
 open import lambda-fg
 open import acmm
 open import relations
+open import sim-fusion-lemmas
 open import big-step-prop
 
 -- Contexts; contextual equivalence; the intricate stuff
