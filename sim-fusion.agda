@@ -354,16 +354,16 @@ module Fuse {ℓ^A ℓ^L ℓ^B ℓ^M ℓ^C ℓ^N ℓ^RVBC ℓ^RV ℓ^RT : Level}
  {var^C : Morphism Θ^C (𝓔^C {`val})}
  {val^C : PreMorphism (𝓔^C {`val}) (𝓔^C {`trm})}
 
- (𝓢^A : Semantics {Θ = Θ^A} {𝓔 = λ {f} → 𝓔^A {f}} var^A val^A)
- (𝓢^B : Semantics {Θ = Θ^B} {𝓔 = λ {f} → 𝓔^B {f}} var^B val^B)
- (𝓢^C : Semantics {Θ = Θ^C} {𝓔 = λ {f} → 𝓔^C {f}} var^C val^C)
+ {𝓢^A : Semantics {Θ = Θ^A} {𝓔 = λ {f} → 𝓔^A {f}} var^A val^A}
+ {𝓢^B : Semantics {Θ = Θ^B} {𝓔 = λ {f} → 𝓔^B {f}} var^B val^B}
+ {𝓢^C : Semantics {Θ = Θ^C} {𝓔 = λ {f} → 𝓔^C {f}} var^C val^C}
 
- (𝓥^R-BC : RPreModel 𝓥^B 𝓥^C ℓ^RVBC)
+ {𝓥^R-BC : RPreModel 𝓥^B 𝓥^C ℓ^RVBC}
 
- (𝓥^R : {Γ Δ Θ : Cx} →
-         (Γ -Env) 𝓥^A Δ → (Δ -Env) 𝓥^B Θ → (Γ -Env) 𝓥^C Θ → Set (ℓ^RV))
+ {𝓥^R : {Γ Δ Θ : Cx} →
+         (Γ -Env) 𝓥^A Δ → (Δ -Env) 𝓥^B Θ → (Γ -Env) 𝓥^C Θ → Set (ℓ^RV)}
 
- (𝓔^R : {f : CBV} → RPreModel (𝓔^B {f}) (𝓔^C {f}) ℓ^RT)
+ {𝓔^R : {f : CBV} → RPreModel (𝓔^B {f}) (𝓔^C {f}) ℓ^RT}
 
  (𝓕 : Fusion 𝓢^A 𝓢^B 𝓢^C 𝓥^R-BC 𝓥^R 𝓔^R)
  where

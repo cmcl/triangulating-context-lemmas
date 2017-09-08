@@ -157,15 +157,19 @@ Ren-sub-fusion = record
 -- Applying a substitution then a renaming is the same as applying a
 -- substitution.
 sub-ren-R∙ : ∀ {Γ Δ Θ} {σ} →
-  {r : Δ ⊆ Θ} → {ρ^B : Γ ⊨ Δ} → {ρ^C : Γ ⊨ Θ} →
+  {ρ^A : Γ ⊨ Δ} → {ρ^B : Δ ⊆ Θ} → {ρ^C : Γ ⊨ Θ} →
   {u^B : Var σ Θ} {u^C : Val σ Θ} →
-  (ρ^R : ∀ {τ} v → ren (var ρ^B {τ} v) r ≡ var ρ^C v) →
+  (ρ^R : ∀ {τ} v → ren (var ρ^A {τ} v) ρ^B ≡ var ρ^C v) →
   (u^R : rmodel VarVal^R u^B u^C) →
-  ∀ {τ} v → ren (var (ext₀^Env ρ^B) {τ} v) (r `∙ u^B) ≡ var (ρ^C `∙ u^C) v
-sub-ren-R∙ {Γ} {Δ} {Θ} {σ} {r} {ρ^B} {ρ^C} {u^B} {u^C} ρ^R eq =
-  [ P ][ eq ,,, {!!} ]
+  ∀ {τ} v → ren (var (ext₀^Env ρ^A) {τ} v) (ρ^B `∙ u^B) ≡ var (ρ^C `∙ u^C) v
+sub-ren-R∙ {Γ} {Δ} {Θ} {σ} {ρ^A} {ρ^B} {ρ^C} {u^B} {u^C} ρ^R eq =
+  let module RenRen = Fuse (syntacticFusion Ren-ren-fusion) in
+  [ P ][ eq ,,, (λ v →
+                   PEq.trans (RenRen.lemma (var ρ^A v) {ρ^A = weak}
+                                          {ρ^B = ρ^B `∙ u^B} (λ v → PEq.refl))
+                                          (ρ^R v)) ]
   where P = λ {τ} v →
-              ren (var (ext₀^Env ρ^B) {τ} v) (r `∙ u^B) ≡ var (ρ^C `∙ u^C) v
+              ren (var (ext₀^Env ρ^A) {τ} v) (ρ^B `∙ u^B) ≡ var (ρ^C `∙ u^C) v
 
 -- Sub-ren fusion
 Sub-ren-fusion :
@@ -173,11 +177,17 @@ Sub-ren-fusion :
                   VarVal^R
                   (λ ρ^A ρ^B ρ^C →
                      ∀ {τ} v → ren (var ρ^A {τ} v) ρ^B ≡ var ρ^C v)
-Sub-ren-fusion = record
+Sub-ren-fusion =
+  let module RenRen = Fuse (syntacticFusion Ren-ren-fusion) in
+  record
   {
-  𝓥^R∙ = {!!}
+  𝓥^R∙ = λ {Γ} {Δ} {Θ} {σ} {ρ^A} {ρ^B} {ρ^C} ρ^R u^R →
+           sub-ren-R∙ {ρ^A = ρ^A} {ρ^B} {ρ^C} ρ^R u^R
   ;
-  𝓥^Rth = λ inc ρ^R v → {!!}
+  𝓥^Rth = λ {Γ} {Δ} {Θ} {ρ^A} {ρ^B} {ρ^C} inc ρ^R v →
+            PEq.trans (PEq.sym (RenRen.lemma (var ρ^A v) {ρ^A = ρ^B}
+                                             {ρ^B = inc} (λ v → PEq.refl)))
+                      (PEq.cong (inc *-Var_) (ρ^R v))
   ;
   R⟦var⟧ = λ v ρ^R → ρ^R v
   ;
