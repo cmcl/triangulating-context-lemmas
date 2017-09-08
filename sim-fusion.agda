@@ -212,6 +212,9 @@ module Simulate {ℓ^A ℓ^M ℓ^B ℓ^N ℓ^RV ℓ^RT : Level}
 Exp^R : {f : CBV} → RPreModel (Exp {f}) (Exp {f}) _
 Exp^R {f} = mkRPreModel (λ {σ} {Γ} → _≡_ {A = Exp {f} σ Γ})
 
+VarVal^R : RPreModel Var Val _
+VarVal^R = mkRPreModel (λ v V → `var v ≡ V)
+
 Var→Val^R : RMorphism Var→Val Var→Val (Exp^R {`val})
 Var→Val^R = mkRInj (PEq.cong `var)
 

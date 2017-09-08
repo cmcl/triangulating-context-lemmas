@@ -100,6 +100,33 @@ syntacticFusion synF = record
   R⟦let⟧ = λ M N _ → PEq.cong₂ `let M (N weak var₀-BC)
   } where open SyntacticFusion synF
 
+ren-ren-R∙ : ∀ {Γ Δ Θ} {σ} →
+  {ρ^A : Γ ⊆ Δ} → {ρ^B : Δ ⊆ Θ} → {ρ^C : Γ ⊆ Θ} → {u^B u^C : Var σ Θ} →
+  (ρ^R : ∀ {τ} v → var ρ^B {τ} (var ρ^A v) ≡ var ρ^C v) →
+  (u^R : u^B ≡ u^C) →
+  ∀ {τ} v → var (ρ^B `∙ u^B) {τ} (var (ext₀^Var ρ^A) v) ≡ var (ρ^C `∙ u^C) v
+ren-ren-R∙ {Γ} {Δ} {Θ} {σ} {ρ^A} {ρ^B} {ρ^C} {u^B} {u^C} ρ^R eq =
+  [ P ][ eq ,,, ρ^R ]
+  where P = λ {τ} v →
+              var (ρ^B `∙ u^B) {τ} (var (ext₀^Var ρ^A) v) ≡ var (ρ^C `∙ u^C) v
+
+-- Ren-ren
+Ren-ren-fusion :
+  SyntacticFusion 𝓥ar₀ 𝓥ar₀ 𝓥ar₀ Var→Val Var→Val Var→Val
+                  PropEq
+                  (λ ρ^A ρ^B ρ^C →
+                     ∀ {τ} v → var ρ^B (var ρ^A {τ} v) ≡ var ρ^C v)
+Ren-ren-fusion = record
+  {
+  𝓥^R∙ = ren-ren-R∙
+  ;
+  𝓥^Rth = λ inc ρ^R v → PEq.cong (var inc) (ρ^R v)
+  ;
+  R⟦var⟧ = λ v ρ^R → PEq.cong `var (ρ^R v)
+  ;
+  var₀-BC = PEq.refl
+  }
+
 ren-sub-R∙ : ∀ {Γ Δ Θ} {σ} →
   {r : Γ ⊆ Δ} → {ρ^B : Δ ⊨ Θ} → {ρ^C : Γ ⊨ Θ} → {u^B u^C : Val σ Θ} →
   (ρ^R : ∀ {τ} v → var ρ^B {τ} (var r v) ≡ var ρ^C v) →
@@ -122,7 +149,37 @@ Ren-sub-fusion = record
   ;
   𝓥^Rth = λ inc ρ^R v → PEq.cong (inc *-Var_) (ρ^R v)
   ;
-  R⟦var⟧ = λ v ρ^R → PEq.cong (Morphism.inj Val→Val) (ρ^R v)
+  R⟦var⟧ = λ v ρ^R → ρ^R v
+  ;
+  var₀-BC = PEq.refl
+  }
+
+-- Applying a substitution then a renaming is the same as applying a
+-- substitution.
+sub-ren-R∙ : ∀ {Γ Δ Θ} {σ} →
+  {r : Δ ⊆ Θ} → {ρ^B : Γ ⊨ Δ} → {ρ^C : Γ ⊨ Θ} →
+  {u^B : Var σ Θ} {u^C : Val σ Θ} →
+  (ρ^R : ∀ {τ} v → ren (var ρ^B {τ} v) r ≡ var ρ^C v) →
+  (u^R : rmodel VarVal^R u^B u^C) →
+  ∀ {τ} v → ren (var (ext₀^Env ρ^B) {τ} v) (r `∙ u^B) ≡ var (ρ^C `∙ u^C) v
+sub-ren-R∙ {Γ} {Δ} {Θ} {σ} {r} {ρ^B} {ρ^C} {u^B} {u^C} ρ^R eq =
+  [ P ][ eq ,,, {!!} ]
+  where P = λ {τ} v →
+              ren (var (ext₀^Env ρ^B) {τ} v) (r `∙ u^B) ≡ var (ρ^C `∙ u^C) v
+
+-- Sub-ren fusion
+Sub-ren-fusion :
+  SyntacticFusion 𝓥al₀ 𝓥ar₀ 𝓥al₀ Val→Val Var→Val Val→Val
+                  VarVal^R
+                  (λ ρ^A ρ^B ρ^C →
+                     ∀ {τ} v → ren (var ρ^A {τ} v) ρ^B ≡ var ρ^C v)
+Sub-ren-fusion = record
+  {
+  𝓥^R∙ = {!!}
+  ;
+  𝓥^Rth = λ inc ρ^R v → {!!}
+  ;
+  R⟦var⟧ = λ v ρ^R → ρ^R v
   ;
   var₀-BC = PEq.refl
   }
@@ -130,6 +187,21 @@ Ren-sub-fusion = record
 -- composition of valuations: sub-sub fusion
 _*-Sub_ : ∀ {Γ Δ Ξ} → (ρ : Δ ⊨ Ξ) → (ρ' : Γ ⊨ Δ) → Γ ⊨ Ξ
 ρ *-Sub ρ' = map-Env (ρ *-Val_) ρ'
+
+Sub-sub-fusion :
+  SyntacticFusion 𝓥al₀ 𝓥al₀ 𝓥al₀ Val→Val Val→Val Val→Val PropEq
+                  (λ ρ^A ρ^B ρ^C →
+                     ∀ {τ} v → subst (var ρ^A {τ} v) ρ^B ≡ var ρ^C v)
+Sub-sub-fusion = record
+  {
+  𝓥^R∙ = {!!}
+  ;
+  𝓥^Rth = λ inc ρ^R v → {!!}
+  ;
+  R⟦var⟧ = λ v ρ^R → ρ^R v
+  ;
+  var₀-BC = PEq.refl
+  }
 
 lemma33 : ∀ {f} {Γ Δ Ξ} {σ} → (ρ : Δ ⊨ Ξ) → (ρ' : Γ ⊨ Δ) → (E : Exp {f} σ Γ) →
  ((ρ *-Sub ρ') *-Val E) ≡ (ρ *-Val (ρ' *-Val E))

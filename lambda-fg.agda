@@ -230,7 +230,7 @@ var (ρ `∙ s)  (su n)  = var ρ n
 (□ S) Γ = {Δ : Cx} → Γ ⊆ Δ → S Δ
 
 Thinnable : {ℓ : Level} → (Cx → Set ℓ) → Set ℓ
-Thinnable S = [ S ⟶ (□ S) ] -- {Γ Δ : Cx} → Γ ⊆ Δ → (S Γ → S Δ)
+Thinnable S = [ S ⟶ (□ S) ] -- {Γ Δ : Cx} → S Γ → Γ ⊆ Δ → S Δ
 
 record Model {ℓ : Level} (𝓥 : PreModel ℓ) : Set ℓ where
   constructor mkModel; field thin : {σ : Ty} → Thinnable (𝓥 σ)
