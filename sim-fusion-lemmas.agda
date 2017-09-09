@@ -270,30 +270,47 @@ ext₀^Env^Var-ext₀ {Γ} {Δ} {σ} {r} {ρ} eq =
   where
     P = λ {τ} v → var (ext₀^Env {σ} {Δ} ρ) {τ} (var (ext₀^Var r) v) ≡ `var v
 
--- TODO: Come up with a more informative name for this lemma.
+ren-sub : ∀ {f} {Γ Δ Θ} {σ} → (E : Exp {f} σ Γ) →
+  (r : Γ ⊆ Δ) → (ρ : Δ ⊨ Θ) → {ρ' : Γ ⊨ Θ} →
+  (∀ {τ} v → var ρ {τ} (var r v) ≡ var ρ' v) →
+  subst (r *-Var E) ρ ≡ subst E ρ'
+ren-sub E r ρ {ρ'} eq = lemma E {r} {ρ} eq
+  where open Fuse (syntacticFusion Ren-sub-fusion)
+
+-- Special cases of ren-sub
+
+-- The substitution and renaming compose to the identity substitution.
 ι^Var^Env-lemma-aux :
   ∀ {f} {Γ Δ} {σ} → (E : Exp {f} σ Γ) → (r : Γ ⊆ Δ) → (ρ : Δ ⊨ Γ) →
   (∀ {τ} v → var ρ {τ} (var r v) ≡ `var v) →
   subst (r *-Var E) ρ ≡ E
-ι^Var^Env-lemma-aux E r ρ eq = prf
-  where open Fuse (syntacticFusion Ren-sub-fusion)
+ι^Var^Env-lemma-aux E r ρ eq with ren-sub E r ρ eq
+... | prf rewrite ι^Env-lemma-aux (λ v → PEq.refl) E = prf
 
-        prf : subst (r *-Var E) ρ ≡ E
-        prf with lemma E {ρ^A = r} {ρ} eq
-        ... | hyp rewrite ι^Env-lemma-aux (λ v → PEq.refl) E = hyp
+-- Special case of ι^Var^Env: weakening and a single substition.
+weak-sub : ∀ {f} {Γ} {σ τ} → (V : Val τ Γ) → (E : Exp {f} σ Γ) →
+  (weak *-Var E) ⟨ V /var₀⟩ ≡ E
+weak-sub V E = ι^Var^Env-lemma-aux E weak (ι^Env `∙ V) (λ v → PEq.refl)
 
 -- weakening commutes with renaming by extension.
 weak-ext₀^Var-comm : ∀ {Γ Δ} {σ} {r : Γ ⊆ Δ} →
  ∀ {τ} v → var weak {τ} (var r v) ≡ var (ext₀^Var {σ} r) (var weak v)
 weak-ext₀^Var-comm v = PEq.refl
 
--- Weakeing commutes with substitution by extension.
+-- Weakening commutes with substitution by extension.
 ext₀^Env-weak-comm : ∀ {Γ Δ} {σ} (ρ : Γ ⊨ Δ) →
   ∀ {τ} v → var (ext₀^Env {σ} ρ) {τ} (var weak v) ≡ (weak *-Var (var ρ v))
 ext₀^Env-weak-comm ρ v = PEq.refl
 
+sub-ren : ∀ {f} {Γ Δ Θ} {σ} → (E : Exp {f} σ Γ) →
+  (ρ : Γ ⊨ Δ) → (r : Δ ⊆ Θ) → {ρ' : Γ ⊨ Θ} →
+  (∀ {τ} v → ren (var ρ {τ} v) r ≡ var ρ' v) →
+  ren (subst E ρ) r ≡ subst E ρ'
+sub-ren E ρ r {ρ'} eq = lemma E {ρ} {r} eq
+  where open Fuse (syntacticFusion Sub-ren-fusion)
+
 -- If combinations of renamings and substitutions are extensionally equal so
--- are there extensions.
+-- are their extensions.
 ext₀^Env-ext^Var : ∀ {Γ Δ Ξ Ω} {σ}
   {r : Γ ⊆ Δ} {r' : Ω ⊆ Ξ} {ρ : Δ ⊨ Ξ} {ρ' : Γ ⊨ Ω} →
   (∀ {τ} v → var ρ {τ} (var r v) ≡ (r' *-Var (var ρ' v))) →
@@ -309,8 +326,8 @@ ext₀^Env-ext^Var {σ = σ} {r' = r'} {ρ' = ρ'} eq (su v)
 ren-sub-prop : ∀ {f} {Γ Δ Ξ Ω} {σ} →
   (E : Exp {f} σ Γ) → (r : Γ ⊆ Δ) → (r' : Ω ⊆ Ξ)
   (ρ : Δ ⊨ Ξ) → (ρ' : Γ ⊨ Ω) →
-  (∀ {τ} v → var ρ {τ} (var r v) ≡ (r' *-Var (var ρ' v))) →
-  subst (r *-Var E) ρ ≡ (r' *-Var (subst E ρ'))
+  (∀ {τ} v → var ρ {τ} (var r v) ≡ ren (var ρ' v) r') →
+  subst (r *-Var E) ρ ≡ ren (subst E ρ') r'
 ren-sub-prop (`var x) r r' ρ ρ' prf = prf x
 ren-sub-prop (`b b) r r' ρ ρ' prf = PEq.refl
 ren-sub-prop (`λ M) r r' ρ ρ' prf
@@ -329,8 +346,3 @@ ren-sub-prop (`let M N) r r' ρ ρ' prf
   rewrite ren-sub-prop M r r' ρ ρ' prf |
           ren-sub-prop N (ext₀^Var r) (ext₀^Var r') (ext₀^Env ρ) (ext₀^Env ρ')
                       (ext₀^Env-ext^Var {r = r} {r'} {ρ} {ρ'} prf)= PEq.refl
-
--- Special case of ι^Var^Env: weakening and a single substition.
-weak-sub : ∀ {f} {Γ} {σ τ} → (V : Val τ Γ) → (E : Exp {f} σ Γ) →
-  (weak *-Var E) ⟨ V /var₀⟩ ≡ E
-weak-sub V E = ι^Var^Env-lemma-aux E weak (ι^Env `∙ V) (λ v → PEq.refl)
