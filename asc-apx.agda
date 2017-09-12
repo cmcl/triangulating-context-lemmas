@@ -54,8 +54,8 @@ _substASC⟪_⟫_ : ∀ {τ υ} {Γ Δ Ξ}
 ⟪- ρ' -⟫ substASC⟪ T ⟫ ρ rewrite lemma33 ρ ρ' T  = PEq.refl
 (_`*_ {σ} {ω} F V) substASC⟪ T ⟫ ρ
   rewrite F substASC⟪ T ⟫ ρ |
-          ren-sub-prop V (weak {σ = σ `→ ω}) weak (ext₀^Env ρ) ρ
-                       (ext₀^Env-weak-comm ρ)
+          ren-sub→sub-ren V (weak {σ = σ `→ ω}) weak (ext₀^Env ρ) ρ
+                          (λ v → PEq.refl)
   = PEq.refl
 
 -- composition of contexts

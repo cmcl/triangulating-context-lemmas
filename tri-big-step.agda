@@ -174,9 +174,9 @@ lemma-2-11O-ASC {Γ} {σ `→ τ} {M} {N} sMN ρ =
     app-sim₀^T {τ} (appT (subst M ρ) U) (appT (subst N ρ) U)
   app-sim₀-appT U with lemma-2-11O-ASC (sim-appT₀ U) ι^Env
   ... | prf rewrite ι^Env₀ (subst M ρ) | ι^Env₀ (subst N ρ)
-            with    ren-sub-prop U (weak {σ = σ `→ τ}) weak
-                                 (ext₀^Env ι^Env) ι^Env
-                                 (ext₀^Env-weak-comm ι^Env)
+            with    ren-sub→sub-ren U (weak {σ = σ `→ τ}) weak
+                                    (ext₀^Env ι^Env) ι^Env
+                                    (λ v → PEq.refl)
   ... | weak-ι^Env-comm rewrite weak-ι^Env-comm | ι^Env₀ U = prf
 
 Lemma-2-11-ASC : (f : CBV) → Set
@@ -555,9 +555,9 @@ ren-bar {Ξ = Ξ} (`exp E) V M r zero prf
   rewrite PEq.sym (lemma33-ren r weak E) =
   ι^Var^Env-lemma-aux E (weak *-Env r) (push Ξ (ι^Env `∙ ren V Ren₀)) prf
 ren-bar {`trm} {Γ} {Δ} {Ξ} {ω = ω} ⟪- ρ -⟫ V M r zero prf =
- ren-sub-prop M (pop! ρ *-Env r) ρ (push Ξ (ι^Env `∙ ren V Ren₀))
-              (ι^Env `∙ ren V Ren₀)
-              (push-pop!-comm {Γ} {Δ} {Ξ} {σ = ω} ρ r V zero prf)
+ ren-sub→sub-ren M (pop! ρ *-Env r) ρ (push Ξ (ι^Env `∙ ren V Ren₀))
+                 (ι^Env `∙ ren V Ren₀)
+                 (push-pop!-comm {Γ} {Δ} {Ξ} {σ = ω} ρ r V zero prf)
 ren-bar {Ξ = Ξ} (`val P) V M r zero prf
   rewrite ren-bar {Ξ = Ξ} P V M r zero prf = PEq.refl
 ren-bar {Ξ = Ξ} (F `$ A) V M r zero prf
@@ -590,8 +590,8 @@ subst-inst-comm {ω = ω} (`λ {ν} P) V M r1 r2
   PEq.refl
 subst-inst-comm (`exp E) V M r1 r2 = weak-sub (Ren₀ *-Var V) E --
 subst-inst-comm {`trm} {Γ} {Δ} ⟪- r -⟫ V M r1 r2 =
-  ren-sub-prop M (pop! r) r (ι^Env `∙ (Ren₀ *-Var V))
-                 (ι^Env `∙ (Ren₀ *-Var V)) (ι^Env-pop!-comm r V)
+  ren-sub→sub-ren M (pop! r) r (ι^Env `∙ (Ren₀ *-Var V))
+                  (ι^Env `∙ (Ren₀ *-Var V)) (ι^Env-pop!-comm r V)
 subst-inst-comm (`val P) V M r1 r2
   rewrite subst-inst-comm P V M r1 r2 = PEq.refl
 subst-inst-comm (F `$ A) V M r1 r2
@@ -645,9 +645,9 @@ sim-appT₀ {Γ} {σ} {τ} {M} {N} ρ sMN U {ν} P
 ... | subst-sim rewrite subst⟪-⟫ P (appP U ⟪ M ⟫VCC) ρ |
                         subst⟪-⟫ P (appP U ⟪ N ⟫VCC) ρ |
                         ι^Var-lemma M | ι^Var-lemma N
-  with ren-sub-prop (Ren₀ *-Var U)
-                    (weak {σ = σ `→ τ}) weak (ext₀^Env ρ) ρ
-                    (ext₀^Env-weak-comm ρ)
+  with ren-sub→sub-ren (Ren₀ *-Var U)
+                       (weak {σ = σ `→ τ}) weak (ext₀^Env ρ) ρ
+                       (λ v → PEq.refl)
 ... | ren-sub-comm rewrite ren-sub-comm
   with ι^Var^Env-lemma-aux U Ren₀ ρ (λ())
 ... | sub-Ren₀ rewrite sub-Ren₀ = subst-sim
