@@ -260,16 +260,6 @@ ext₀^Var-ext {Γ} {Δ} {σ} {r} {r'} eq =
   [ P ][ PEq.refl ,,,  PEq.cong su ∘ eq ]
  where P = λ {τ} v → var (ext₀^Var {σ} {Γ} r) {τ} v ≡ var (ext₀^Var r') v
 
--- The same proof as for ext₀^Env-ext₀ but I cannot think how to generalise
--- the statement to encompass both.
-ext₀^Env^Var-ext₀ : ∀ {Γ Δ} {σ} → {r : Γ ⊆ Δ} → {ρ : Δ ⊨ Γ} →
-  (∀ {τ} v → var ρ {τ} (var r v) ≡ `var v) →
- ∀ {τ} v → var (ext₀^Env {σ} {Δ} ρ) {τ} (var (ext₀^Var r) v) ≡ `var v
-ext₀^Env^Var-ext₀ {Γ} {Δ} {σ} {r} {ρ} eq =
-  [ P ][ PEq.refl ,,, (PEq.cong (weak *-Var_)) ∘ eq ]
-  where
-    P = λ {τ} v → var (ext₀^Env {σ} {Δ} ρ) {τ} (var (ext₀^Var r) v) ≡ `var v
-
 -- TODO: Come up with a more informative name for this lemma.
 ι^Var^Env-lemma-aux :
   ∀ {f} {Γ Δ} {σ} → (E : Exp {f} σ Γ) → (r : Γ ⊆ Δ) → (ρ : Δ ⊨ Γ) →
@@ -282,37 +272,13 @@ ext₀^Env^Var-ext₀ {Γ} {Δ} {σ} {r} {ρ} eq =
         prf with lemma E {ρ^A = r} {ρ} eq
         ... | hyp rewrite ι^Env-lemma-aux (λ v → PEq.refl) E = hyp
 
--- weakening commutes with renaming by extension.
-weak-ext₀^Var-comm : ∀ {Γ Δ} {σ} {r : Γ ⊆ Δ} →
- ∀ {τ} v → var weak {τ} (var r v) ≡ var (ext₀^Var {σ} r) (var weak v)
-weak-ext₀^Var-comm v = PEq.refl
-
--- Weakeing commutes with substitution by extension.
-ext₀^Env-weak-comm : ∀ {Γ Δ} {σ} (ρ : Γ ⊨ Δ) →
-  ∀ {τ} v → var (ext₀^Env {σ} ρ) {τ} (var weak v) ≡ (weak *-Var (var ρ v))
-ext₀^Env-weak-comm ρ v = PEq.refl
-
--- If combinations of renamings and substitutions are extensionally equal so
--- are there extensions.
-ext₀^Env-ext^Var : ∀ {Γ Δ Ξ Ω} {σ}
-  {r : Γ ⊆ Δ} {r' : Ω ⊆ Ξ} {ρ : Δ ⊨ Ξ} {ρ' : Γ ⊨ Ω} →
-  (∀ {τ} v → var ρ {τ} (var r v) ≡ (r' *-Var (var ρ' v))) →
- ∀ {τ} v → var (ext₀^Env {σ} ρ) {τ}
-              (var (ext₀^Var r) v) ≡ (ext₀^Var r' *-Var (var (ext₀^Env ρ') v))
-ext₀^Env-ext^Var eq ze = PEq.refl
-ext₀^Env-ext^Var {σ = σ} {r' = r'} {ρ' = ρ'} eq (su v)
-  with (PEq.cong (weak {σ = σ} *-Var_) ∘ eq) v
-... | H rewrite PEq.sym (lemma33-ren (ext₀^Var {σ} r') weak (var ρ' v)) =
-  PEq.trans H (PEq.trans (PEq.sym (lemma33-ren weak r' (var ρ' v)))
-                         (ren-ext (var ρ' v) (weak-ext₀^Var-comm {r = r'})))
-
 -- TODO: Pick a better name. It's a combination of ren-sub and sub-ren.
-ren-sub-prop : ∀ {f} {Γ Δ Ξ Ω} {σ} →
+ren-sub→sub-ren : ∀ {f} {Γ Δ Ξ Ω} {σ} →
   (E : Exp {f} σ Γ) → (r : Γ ⊆ Δ) → (r' : Ω ⊆ Ξ)
   (ρ : Δ ⊨ Ξ) → (ρ' : Γ ⊨ Ω) →
   (∀ {τ} v → var ρ {τ} (var r v) ≡ ren (var ρ' v) r') →
   subst (ren E r) ρ ≡ ren (subst E ρ') r'
-ren-sub-prop E r r' ρ ρ' eq = PEq.trans prf prf'
+ren-sub→sub-ren E r r' ρ ρ' eq = PEq.trans prf prf'
   where module RenSub = Fuse (syntacticFusion Ren-sub-fusion)
         module SubRen = Fuse (syntacticFusion Sub-ren-fusion)
 
