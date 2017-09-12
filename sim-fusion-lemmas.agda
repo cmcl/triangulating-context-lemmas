@@ -306,29 +306,21 @@ ext₀^Env-ext^Var {σ = σ} {r' = r'} {ρ' = ρ'} eq (su v)
   PEq.trans H (PEq.trans (PEq.sym (lemma33-ren weak r' (var ρ' v)))
                          (ren-ext (var ρ' v) (weak-ext₀^Var-comm {r = r'})))
 
+-- TODO: Pick a better name. It's a combination of ren-sub and sub-ren.
 ren-sub-prop : ∀ {f} {Γ Δ Ξ Ω} {σ} →
   (E : Exp {f} σ Γ) → (r : Γ ⊆ Δ) → (r' : Ω ⊆ Ξ)
   (ρ : Δ ⊨ Ξ) → (ρ' : Γ ⊨ Ω) →
-  (∀ {τ} v → var ρ {τ} (var r v) ≡ (r' *-Var (var ρ' v))) →
-  subst (r *-Var E) ρ ≡ (r' *-Var (subst E ρ'))
-ren-sub-prop (`var x) r r' ρ ρ' prf = prf x
-ren-sub-prop (`b b) r r' ρ ρ' prf = PEq.refl
-ren-sub-prop (`λ M) r r' ρ ρ' prf
-  rewrite ren-sub-prop M (ext₀^Var r) (ext₀^Var r') (ext₀^Env ρ) (ext₀^Env ρ')
-                      (ext₀^Env-ext^Var {r = r} {r'} {ρ} {ρ'} prf) = PEq.refl
-ren-sub-prop (`val M) r r' ρ ρ' prf
-  rewrite ren-sub-prop M r r' ρ ρ' prf = PEq.refl
-ren-sub-prop (F `$ A) r r' ρ ρ' prf
-  rewrite ren-sub-prop F r r' ρ ρ' prf |
-          ren-sub-prop A r r' ρ ρ' prf = PEq.refl
-ren-sub-prop (`if B L R) r r' ρ ρ' prf
-  rewrite ren-sub-prop B r r' ρ ρ' prf |
-          ren-sub-prop L r r' ρ ρ' prf |
-          ren-sub-prop R r r' ρ ρ' prf = PEq.refl
-ren-sub-prop (`let M N) r r' ρ ρ' prf
-  rewrite ren-sub-prop M r r' ρ ρ' prf |
-          ren-sub-prop N (ext₀^Var r) (ext₀^Var r') (ext₀^Env ρ) (ext₀^Env ρ')
-                      (ext₀^Env-ext^Var {r = r} {r'} {ρ} {ρ'} prf)= PEq.refl
+  (∀ {τ} v → var ρ {τ} (var r v) ≡ ren (var ρ' v) r') →
+  subst (ren E r) ρ ≡ ren (subst E ρ') r'
+ren-sub-prop E r r' ρ ρ' eq = PEq.trans prf prf'
+  where module RenSub = Fuse (syntacticFusion Ren-sub-fusion)
+        module SubRen = Fuse (syntacticFusion Sub-ren-fusion)
+
+        prf : subst (ren E r) ρ ≡ subst E (Thin.th 𝓥al ρ' r')
+        prf = RenSub.lemma E {r} {ρ} eq
+
+        prf' : subst E (Thin.th 𝓥al ρ' r') ≡ ren (subst E ρ') r'
+        prf' = PEq.sym (SubRen.lemma E {ρ'} {r'} (λ v → PEq.refl))
 
 -- Special case of ι^Var^Env: weakening and a single substition.
 weak-sub : ∀ {f} {Γ} {σ τ} → (V : Val τ Γ) → (E : Exp {f} σ Γ) →
