@@ -272,7 +272,6 @@ ext₀^Var-ext {Γ} {Δ} {σ} {r} {r'} eq =
         prf with lemma E {ρ^A = r} {ρ} eq
         ... | hyp rewrite ι^Env-lemma-aux (λ v → PEq.refl) E = hyp
 
--- TODO: Pick a better name. It's a combination of ren-sub and sub-ren.
 ren-sub→sub-ren : ∀ {f} {Γ Δ Ξ Ω} {σ} →
   (E : Exp {f} σ Γ) → (r : Γ ⊆ Δ) → (r' : Ω ⊆ Ξ)
   (ρ : Δ ⊨ Ξ) → (ρ' : Γ ⊨ Ω) →
