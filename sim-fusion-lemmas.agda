@@ -294,12 +294,9 @@ ren-sub→sub-ren : ∀ {f} {Γ Δ Ξ Ω} {σ} →
   (ρ : Δ ⊨ Ξ) → (ρ' : Γ ⊨ Ω) →
   (∀ {τ} v → var ρ {τ} (var r v) ≡ ren (var ρ' v) r') →
   subst (ren E r) ρ ≡ ren (subst E ρ') r'
-ren-sub→sub-ren E r r' ρ ρ' eq = PEq.trans prf prf'
-  where module RenSub = Fuse (syntacticFusion Ren-sub-fusion)
-        module SubRen = Fuse (syntacticFusion Sub-ren-fusion)
-
-        prf : subst (ren E r) ρ ≡ subst E (Thin.th 𝓥al ρ' r')
-        prf = RenSub.lemma E {r} {ρ} eq
+ren-sub→sub-ren E r r' ρ ρ' eq =  PEq.trans prf prf'
+  where prf : subst (ren E r) ρ ≡ subst E (Thin.th 𝓥al ρ' r')
+        prf = ren-sub E r ρ eq
 
         prf' : subst E (Thin.th 𝓥al ρ' r') ≡ ren (subst E ρ') r'
-        prf' = PEq.sym (SubRen.lemma E {ρ'} {r'} (λ v → PEq.refl))
+        prf' = PEq.sym (sub-ren E ρ' r' (λ v → PEq.refl))
