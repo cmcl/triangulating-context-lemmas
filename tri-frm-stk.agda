@@ -10,9 +10,11 @@ open import Relation.Binary.PropositionalEquality as PEq using (_≡_)
 
 open import lambda-fg
 open import acmm
+open import sim-fusion-lemmas
 open import relations
 open import big-step-prop
 open import obs-apx
+open import ciu-apx
 open import frm-stk-prop
 
 -- Lemma regarding Val to <Frm,Trm> configuration relation transformer
@@ -26,60 +28,64 @@ lemma-[ r ]^F-refl S M {U = U} der = U , der , r U
 
 mutual
 
-  ciu-sim₀ : GRel₀^E
-  ciu-sim₀ = λ { {`val} → ciu-sim₀^V ; {`trm} → ciu-sim₀^T }
+  app-frm-sim₀ : GRel₀^E
+  app-frm-sim₀ = λ { {`val} → app-frm-sim₀^V ; {`trm} → app-frm-sim₀^T }
 
-  data ciu-sim₀^B : GRel₀^B where
-    ciu-sim₀^B-b : ∀ {β} {b b'} → sim₀^B {β} b b' → ciu-sim₀^B {β} b b'
+  data app-frm-sim₀^B : GRel₀^B where
+    app-frm-sim₀^B-b : ∀ {β} {b b'} →
+      sim₀^B {β} b b' → app-frm-sim₀^B {β} b b'
 
-  data ciu-sim₀^V : GRel₀^V where
-    ciu-sim₀^V-b : ∀ {β} {b b'} → ciu-sim₀^B {β} b b' →
-      ciu-sim₀^V {`b β} (`b b) (`b b)
+  data app-frm-sim₀^V : GRel₀^V where
+    app-frm-sim₀^V-b : ∀ {β} {b b'} → app-frm-sim₀^B {β} b b' →
+      app-frm-sim₀^V {`b β} (`b b) (`b b)
 
-    ciu-sim₀^V-λ : ∀ {σ τ} {M N} →
-      (∀ U → ciu-sim₀^T {τ} (M ⟨ U /var₀⟩) (N ⟨ U /var₀⟩)) →
-      ciu-sim₀^V {σ `→ τ} (`λ M) (`λ N)
+    app-frm-sim₀^V-λ : ∀ {σ τ} {M N} →
+      (∀ U → app-frm-sim₀^T {τ} (M ⟨ U /var₀⟩) (N ⟨ U /var₀⟩)) →
+      app-frm-sim₀^V {σ `→ τ} (`λ M) (`λ N)
 
-  ciu-sim₀^T : GRel₀^T
-  ciu-sim₀^T {τ} M N = ∀ {σ} {S} → S , M [ sim₀^V {σ} ]^F S , N
+  app-frm-sim₀^T : GRel₀^T
+  app-frm-sim₀^T {τ} M N = ∀ {σ} {S} → S , M [ sim₀^V {σ} ]^F S , N
 
-Ciu-sim : ∀ (f : CBV) → Set₁
-Ciu-sim f = ∀ {Γ} {τ} → Rel^E {f} {L.zero} {Γ} {τ}
-ciu-sim : ∀ {f} → Ciu-sim f
-ciu-sim {f} = case f return Ciu-sim of λ { `val →  simV ; `trm → simT  }
+App-frm-sim : ∀ (f : CBV) → Set₁
+App-frm-sim f = ∀ {Γ} {τ} → Rel^E {f} {L.zero} {Γ} {τ}
+app-frm-sim : ∀ {f} → App-frm-sim f
+app-frm-sim {f} = case f return App-frm-sim of
+  λ { `val →  simV ; `trm → simT  }
  where
-  simV : Ciu-sim `val
-  simT : Ciu-sim `trm
+  simV : App-frm-sim `val
+  simT : App-frm-sim `trm
   simV {Γ} {τ} = _[ simT {Γ} {τ} ]^V_
-  simT {Γ} {τ} = _[ ciu-sim₀ {`trm} {τ} ]^O_
+  simT {Γ} {τ} = _[ app-frm-sim₀ {`trm} {τ} ]^O_
 
-Ciu-sim₀-refl : (f : CBV) → Set
-Ciu-sim₀-refl f = ∀ {τ} E → ciu-sim₀ {f} {τ} E E
-ciu-sim₀-refl : ∀ {f} → Ciu-sim₀-refl f
-ciu-sim₀-refl {f} = case f return Ciu-sim₀-refl of
+App-frm-sim₀-refl : (f : CBV) → Set
+App-frm-sim₀-refl f = ∀ {τ} E → app-frm-sim₀ {f} {τ} E E
+app-frm-sim₀-refl : ∀ {f} → App-frm-sim₀-refl f
+app-frm-sim₀-refl {f} = case f return App-frm-sim₀-refl of
   λ { `val → prfV ; `trm → prfT }
   where
-    prfV : Ciu-sim₀-refl `val
-    prfT : Ciu-sim₀-refl `trm
+    prfV : App-frm-sim₀-refl `val
+    prfT : App-frm-sim₀-refl `trm
 
     prfV {`b β} (`var ())
-    prfV {`b β} (`b b) = ciu-sim₀^V-b (ciu-sim₀^B-b (sim₀^B-b b))
+    prfV {`b β} (`b b) = app-frm-sim₀^V-b (app-frm-sim₀^B-b (sim₀^B-b b))
     prfV {σ `→ τ₁} (`var ())
-    prfV {σ `→ τ} (`λ M) = ciu-sim₀^V-λ (λ U → prfT (M ⟨ U /var₀⟩))
+    prfV {σ `→ τ} (`λ M) = app-frm-sim₀^V-λ (λ U → prfT (M ⟨ U /var₀⟩))
 
     -- NB: sim₀-refl used for relating final values!
     prfT {τ} M {σ} {S} = lemma-[ sim₀-refl ]^F-refl S M
 
-lemma-2-6O-frm : ∀ {Γ} {τ} {M N} → cxt-sim M N → ciu-sim {`trm} {Γ} {τ} M N
-lemma-2-6O-frm {M = M} {N = N} sMN ρ {σ} {S} evSM
-  with sMN (letF-cxt S ⟪- ρ -⟫)
+ciu-sim→app-frm-sim : ∀ {Γ} {τ} {M N} →
+  ciu-sim M N → app-frm-sim {`trm} {Γ} {τ} M N
+ciu-sim→app-frm-sim {M = M} {N = N} sMN ρ {σ} {S} evSM
+  with sMN (letF-ciu S ⟪- ρ -⟫)
 ... | prf rewrite letF-⟪ M ⟫ S ⟪- ρ -⟫ with prf (lemmaF evSM)
 ... | V , derSN , sUV rewrite letF-⟪ N ⟫ S ⟪- ρ -⟫ =
   V , corollaryF derSN , sUV
 
-lemma-2-6-frm : ∀ {τ} {M N} → cxt-sim₀ M N → ciu-sim₀ {`trm} {τ} M N
-lemma-2-6-frm {τ} {M} {N} sMN {σ} {S}
-  with lemma-2-6O-frm {ε} {τ} {M} {N} sMN `ε {σ} {S}
+ciu-sim₀→app-frm-sim₀ : ∀ {τ} {M N} →
+  ciu-sim₀ M N → app-frm-sim₀ {`trm} {τ} M N
+ciu-sim₀→app-frm-sim₀ {τ} {M} {N} sMN {σ} {S}
+  with ciu-sim→app-frm-sim {ε} {τ} {M} {N} sMN `ε {σ} {S}
 ... | prf rewrite ι^Env₀-lemma `ε M | ι^Env₀-lemma `ε N = prf
 
 {--------------------------------}
@@ -367,7 +373,7 @@ lemma-2-18-frm {f} = case f return Lemma-2-18-frm of
   prfT = lemma-2-18O-frm ∘ (log-frm-sim₀-log-frm-sim {`trm})
 
 Lemma-2-20-aux-frm : (f : CBV) → Set
-Lemma-2-20-aux-frm f = ∀ {τ} {M N P} → ciu-sim₀ M N → log-frm-sim₀ N P →
+Lemma-2-20-aux-frm f = ∀ {τ} {M N P} → app-frm-sim₀ M N → log-frm-sim₀ N P →
                    log-frm-sim₀ {f} {τ} M P
 lemma-2-20-aux-frm : ∀ {f} → Lemma-2-20-aux-frm f
 lemma-2-20-aux-frm {f} = case f return Lemma-2-20-aux-frm of
@@ -376,21 +382,22 @@ lemma-2-20-aux-frm {f} = case f return Lemma-2-20-aux-frm of
   prfV : Lemma-2-20-aux-frm `val
   prfT : Lemma-2-20-aux-frm `trm
   prfV {`b β} {`var ()}
-  prfV {`b β} {`b b} (ciu-sim₀^V-b _) r = r
+  prfV {`b β} {`b b} (app-frm-sim₀^V-b _) r = r
   prfV {σ `→ τ} {`var ()}
   prfV {σ `→ τ} {`λ M} {P = `var ()}
-  prfV {σ `→ τ} {`λ M} {P = `λ P} (ciu-sim₀^V-λ sMN) r {U} {V} sUV =
+  prfV {σ `→ τ} {`λ M} {P = `λ P} (app-frm-sim₀^V-λ sMN) r {U} {V} sUV =
     prfT (sMN U) (r sUV)
 
   prfT {τ} {M} {N} {P} sMN sNP {σ} {S} sST evSM with sMN evSM
   ... | V , evSN , sUV with sNP sST evSN
   ... | W , evTP , sVW = W , evTP , sim₀-trans {`val} sUV sVW
 
-lemma-2-20-frm : ∀ {f} {τ} {M N} → ciu-sim₀ M N → log-frm-sim₀ {f} {τ} M N
+lemma-2-20-frm : ∀ {f} {τ} {M N} → app-frm-sim₀ M N → log-frm-sim₀ {f} {τ} M N
 lemma-2-20-frm {f} {τ} {M} {N} sMN =
   lemma-2-20-aux-frm {f} {τ} sMN (log-frm-sim₀-refl N)
 
-lemma-2-20O-frm : ∀ {Γ} {τ} {M N : Trm τ Γ} → ciu-sim M N → log-frm-sim M N
+lemma-2-20O-frm : ∀ {Γ} {τ} {M N : Trm τ Γ} →
+  app-frm-sim M N → log-frm-sim M N
 lemma-2-20O-frm {Γ} {τ} {M} {N} sMN {ρM} {ρN} simρ =
   lemma-2-20-aux-frm {`trm} (sMN ρM) (log-frm-sim-refl N simρ)
 
@@ -398,28 +405,31 @@ lemma-2-20O-frm {Γ} {τ} {M} {N} sMN {ρM} {ρN} simρ =
 {-- Summary -}
 {------------}
 
+-- on open terms
+
+cxt-sim→app-frm-sim^T : ∀ {Γ} {τ} {M N : Trm τ Γ} →
+  cxt-sim M N → app-frm-sim M N
+cxt-sim→app-frm-sim^T = ciu-sim→app-frm-sim ∘ cxt-sim→ciu-sim^T
+
+app-frm-sim→log-frm-sim^T : ∀ {Γ} {τ} {M N : Trm τ Γ} →
+  app-frm-sim M N → log-frm-sim M N
+app-frm-sim→log-frm-sim^T {Γ} {τ} {M} {N} = lemma-2-20O-frm {Γ} {τ} {M} {N}
+
+log-frm-sim→cxt-sim^T : ∀ {Γ} {τ} {M N : Trm τ Γ} →
+  log-frm-sim M N → cxt-sim M N
+log-frm-sim→cxt-sim^T = lemma-2-18O-frm
+
 -- on closed terms
 
-cxt-sim₀→ciu-sim₀^T : ∀ {τ} {M N : Trm₀ τ} → cxt-sim₀ M N → ciu-sim₀ M N
-cxt-sim₀→ciu-sim₀^T = lemma-2-6-frm
+cxt-sim₀→app-frm-sim₀^T : ∀ {τ} {M N : Trm₀ τ} →
+  cxt-sim₀ M N → app-frm-sim₀ M N
+cxt-sim₀→app-frm-sim₀^T = ciu-sim₀→app-frm-sim₀ ∘ (cxt-sim→ciu-sim^T {ε})
 
-ciu-sim₀→log-frm-sim₀^T : ∀ {τ} {M N : Trm₀ τ} →
-  ciu-sim₀ M N → log-frm-sim₀ M N
-ciu-sim₀→log-frm-sim₀^T = lemma-2-20-frm {`trm}
+app-frm-sim₀→log-frm-sim₀^T : ∀ {τ} {M N : Trm₀ τ} →
+  app-frm-sim₀ M N → log-frm-sim₀ M N
+app-frm-sim₀→log-frm-sim₀^T = lemma-2-20-frm {`trm}
 
 log-frm-sim₀→cxt-sim₀^T : ∀ {τ} {M N : Trm₀ τ} →
   log-frm-sim₀ M N → cxt-sim₀ M N
 log-frm-sim₀→cxt-sim₀^T = lemma-2-18-frm {`trm}
 
--- on open terms
-
-cxt-sim→ciu-sim^T : ∀ {Γ} {τ} {M N : Trm τ Γ} → cxt-sim M N → ciu-sim M N
-cxt-sim→ciu-sim^T = lemma-2-6O-frm
-
-ciu-sim→log-frm-sim^T : ∀ {Γ} {τ} {M N : Trm τ Γ} →
-  ciu-sim M N → log-frm-sim M N
-ciu-sim→log-frm-sim^T {Γ} {τ} {M} {N} = lemma-2-20O-frm {Γ} {τ} {M} {N}
-
-log-frm-sim→cxt-sim^T : ∀ {Γ} {τ} {M N : Trm τ Γ} →
-  log-frm-sim M N → cxt-sim M N
-log-frm-sim→cxt-sim^T = lemma-2-18O-frm

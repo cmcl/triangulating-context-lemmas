@@ -9,9 +9,11 @@ open import Relation.Binary.PropositionalEquality as PEq using (_≡_)
 
 open import lambda-fg
 open import acmm
+open import sim-fusion-lemmas
 open import relations
 open import big-step-prop
 open import obs-apx
+open import ciu-apx
 
 letF : ∀ {τ σ} (S : Frm τ σ) (M : Trm₀ σ) → Trm₀ τ
 letF   Id    M = M
@@ -109,12 +111,12 @@ lemmaF (↓letT der)             = lemmaF der
 ... | prfL , prfR with prfL (lemmaF der)
 ... | V , derM , derU = V , corollary derM , corollaryF derU
 
-letF-cxt : ∀ {Γ} {τ σ ω} (S : Frm τ σ) (P : Cxt⟪ Γ ⊢ ω ⟫ {`trm} σ ε) →
-           Cxt⟪ Γ ⊢ ω ⟫ {`trm} τ ε
-letF-cxt   Id    P = P
-letF-cxt (S ∙ N) P = letF-cxt S (`let P (`exp N))
+letF-ciu : ∀ {Γ} {τ σ ω} (S : Frm τ σ) (P : CIU⟪ Γ ⊢ ω ⟫ σ ε) →
+           CIU⟪ Γ ⊢ ω ⟫ τ ε
+letF-ciu   Id    P = P
+letF-ciu (S ∙ N) P = letF-ciu S (P `⋉ N)
 
-letF-⟪_⟫ : ∀ {Γ} {τ σ ω} (M : Trm σ Γ) (S : Frm τ ω) (P : Cxt⟪ Γ ⊢ σ ⟫ ω ε) →
-           (letF-cxt S P) ⟪ M ⟫ ≡ letF S (P ⟪ M ⟫)
+letF-⟪_⟫ : ∀ {Γ} {τ σ ω} (M : Trm σ Γ) (S : Frm τ ω) (P : CIU⟪ Γ ⊢ σ ⟫ ω ε) →
+           (letF-ciu S P) ⟪ M ⟫CIU ≡ letF S (P ⟪ M ⟫CIU)
 letF-⟪ M ⟫ Id P = PEq.refl
-letF-⟪ M ⟫ (S ∙ N) P rewrite letF-⟪ M ⟫ S (`let P (`exp N)) = PEq.refl
+letF-⟪ M ⟫ (S ∙ N) P = letF-⟪ M ⟫ S (P `⋉ N)
