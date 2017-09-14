@@ -11,6 +11,7 @@ open import Relation.Binary.PropositionalEquality as PEq using (_≡_)
 
 open import lambda-fg
 open import acmm
+open import sim-fusion-lemmas
 open import obs-apx
 open import relations
 open import big-step-prop
@@ -39,13 +40,8 @@ ren₀-zero ρ = Ren₀ *-Var zero ρ
 zero* : ∀ {Γ} {σ τ} → Env₀ (Γ ∙ τ) → Trm σ (Γ ∙ τ) → Trm σ Γ 
 zero* ρ M =  M ⟨ ren₀-zero ρ /var₀⟩ 
 
-lemma35 : ∀ {f} {Γ} {σ τ} → (E : (σ ⊢ Exp {f} τ) Γ) → (ρ : Env₀ Γ) → ∀ U →
- subst E (ρ `∙ U) ≡ subst (E ⟨ Ren₀ *-Var U /var₀⟩) ρ
-lemma35 E ρ U = lemma33 ρ (ι^Env `∙ (Ren₀ *-Var U)) E
-
 subst-succ : ∀ {Γ} {σ τ} → (ρ : Env₀ (Γ ∙ τ)) → (M : Trm σ (Γ ∙ τ)) →
   subst (zero* ρ M) (succ ρ) ≡ subst M (succ ρ `∙ zero ρ)
--- subst-succ ρ M rewrite lemma35 M (succ ρ) (zero ρ) = PEq.refl 
 subst-succ ρ M = PEq.sym (lemma33 (succ ρ) (ι^Env  `∙ (ren₀-zero ρ)) M)
 
 -- iterated sequential substitution 'subst₀'
@@ -96,15 +92,12 @@ lemma-2-10ii-βV r red der with r der
 βVΓ   {ε}   ρ M = M
 βVΓ {Γ ∙ τ} ρ M = βVΓ (succ ρ) (βV M (ren₀-zero ρ))
 
-βV-subst₀ : ∀ {Γ} {σ} → (ρ : Env₀ Γ) → (M : Trm σ Γ) → βVΓ ρ M →βV subst₀ ρ M
-βV-subst₀   {ε}   ρ M = →βV-refl
+βV-subst₀ : ∀ {Γ} {σ} → (ρ : Env₀ Γ) → (M : Trm σ Γ) → βVΓ ρ M →βV subst M ρ
+βV-subst₀   {ε}   ρ M rewrite ι^Env₀-lemma ρ M = →βV-refl
 βV-subst₀ {Γ ∙ τ} ρ M with βV-subst₀ (succ ρ) (βV M (ren₀-zero ρ))
-... | ih 
-      rewrite subst-equiv (succ ρ) (βV M (ren₀-zero ρ)) with →βV-step ih 
-... | prf 
-      rewrite subst-equiv (succ ρ) (zero* ρ M) | subst-succ ρ M |
-              lemma34 M (succ ρ) (zero ρ) 
-    = prf
+... | ih rewrite PEq.sym (subst-equiv ρ M) with →βV-step ih
+... | prf rewrite subst-equiv (succ ρ) (zero* ρ M) | subst-succ ρ M |
+                  lemma34 M (succ ρ) (zero ρ) = prf
 
 -- variable-capturing contexts; no additional renaming/substitution in holes
 
@@ -233,3 +226,36 @@ ivcc-sim₀ {f} = case f return (λ f → ∀ {υ} → Rel^E {f} {_} {ε} {υ})
   simT : GRel₀^T
   simV {τ} = _[ simT {τ} ]^V_
   simT     = ivcc-sim {`trm} {ε}
+
+-- Convert an IVCC to a VSC
+
+ivcc-to-cxt : ∀ {f} {Γ Δ} {σ τ} → IVCC⟪ Γ ⊢ σ ⟫ {f} τ Δ → Cxt⟪ Γ ⊢ σ ⟫ {f} τ Δ
+ivcc-to-cxt (`λ M) = `λ (ivcc-to-cxt M)
+ivcc-to-cxt (`exp E) = `exp E
+ivcc-to-cxt ⟪-⟫ = ⟪- ι^Env -⟫
+ivcc-to-cxt (`val P) = `val (ivcc-to-cxt P)
+ivcc-to-cxt (F `$ A) = (ivcc-to-cxt F) `$ (ivcc-to-cxt A)
+ivcc-to-cxt (`if B L R) = `if (ivcc-to-cxt B) (ivcc-to-cxt L) (ivcc-to-cxt R)
+ivcc-to-cxt (`let P Q) = `let (ivcc-to-cxt P) (ivcc-to-cxt Q)
+
+ivcc→cxt⟪_⟫ : ∀ {f} {Γ Δ} {σ τ} →
+  (M : Trm σ Γ) → (P : IVCC⟪ Γ ⊢ σ ⟫ {f} τ Δ) →
+  (ivcc-to-cxt P) ⟪ M ⟫ ≡ P ⟪ M ⟫IVCC
+ivcc→cxt⟪ M ⟫ (`λ P) rewrite ivcc→cxt⟪ M ⟫ P = PEq.refl
+ivcc→cxt⟪ M ⟫ (`exp E) = PEq.refl
+ivcc→cxt⟪ M ⟫ ⟪-⟫ = ι^Env-lemma M
+ivcc→cxt⟪ M ⟫ (`val P) rewrite ivcc→cxt⟪ M ⟫ P = PEq.refl
+ivcc→cxt⟪ M ⟫ (F `$ A) rewrite ivcc→cxt⟪ M ⟫ F | ivcc→cxt⟪ M ⟫ A = PEq.refl
+ivcc→cxt⟪ M ⟫ (`if B L R)
+  rewrite ivcc→cxt⟪ M ⟫ B | ivcc→cxt⟪ M ⟫ L | ivcc→cxt⟪ M ⟫ R = PEq.refl
+ivcc→cxt⟪ M ⟫ (`let P Q) rewrite ivcc→cxt⟪ M ⟫ P | ivcc→cxt⟪ M ⟫ Q = PEq.refl
+
+-- IVCCs are contained within VSCs
+
+cxt-sim→ivcc-sim^T :
+  ∀ {Γ} {τ} {M N} → cxt-sim M N → ivcc-sim {`trm} {Γ} {τ} M N
+cxt-sim→ivcc-sim^T {Γ} {τ} {M} {N} sMN P with sMN (ivcc-to-cxt P)
+... | hyp rewrite ivcc→cxt⟪ M ⟫ P | ivcc→cxt⟪ N ⟫ P = hyp
+
+cxt-sim₀→ivcc-sim₀^T : ∀ {τ} {M N : Trm₀ τ} → cxt-sim₀ M N → ivcc-sim₀ M N
+cxt-sim₀→ivcc-sim₀^T = cxt-sim→ivcc-sim^T {ε}

@@ -13,7 +13,7 @@ open import acmm
 open import relations
 open import sim-fusion-lemmas
 open import obs-apx
-open import vcc-apx
+open import ivcc-apx
 open import big-step-prop
 
 -- Contexts; contextual equivalence; the intricate stuff
@@ -103,13 +103,13 @@ asc-sim₀ {f} = case f return (λ f → ∀ {υ} → Rel^E {f} {_} {ε} {υ})
   simV {τ} = _[ simT {τ} ]^V_
   simT     = asc-sim {`trm} {ε}
 
-appVCC : ∀ {Γ Δ} {ω σ τ} →
-  VCC⟪ Γ ⊢ ω ⟫ {`trm} (σ `→ τ) Δ → Val σ Δ → VCC⟪ Γ ⊢ ω ⟫ {`trm} τ Δ
-appVCC P V = `let P (`exp (Val→Spine V))
+appIVCC : ∀ {Γ Δ} {ω σ τ} →
+  IVCC⟪ Γ ⊢ ω ⟫ {`trm} (σ `→ τ) Δ → Val σ Δ → IVCC⟪ Γ ⊢ ω ⟫ {`trm} τ Δ
+appIVCC P V = `let P (`exp (Val→Spine V))
 
-asc-to-vcc : ∀ {Γ} {σ τ} → ASC⟪ Γ ⊢ σ ⟫ τ ε → VCC⟪ Γ ⊢ σ ⟫ {`trm} τ ε
-asc-to-vcc ⟪- ρ -⟫ = VCC-sub ⟪- refl^Var -⟫ ρ
-asc-to-vcc (P `* V) = appVCC (asc-to-vcc P) V
+asc-to-ivcc : ∀ {Γ} {σ τ} → ASC⟪ Γ ⊢ σ ⟫ τ ε → IVCC⟪ Γ ⊢ σ ⟫ {`trm} τ ε
+asc-to-ivcc ⟪- ρ -⟫ = IVCC-sub ρ ⟪-⟫
+asc-to-ivcc (P `* V) = appIVCC (asc-to-ivcc P) V
 
 -- Reduction under application (term application simulated with let).
 data _→$_ : GRel₀^T where
@@ -138,23 +138,22 @@ lemma-2-10ii-$ : {ℓ^V : Level} {τ : Ty} {R : GRel^V {ℓ^V} {τ}}
 lemma-2-10ii-$ r red der with r der
 ... | V , derM , rUV = V , lemma-2-3i-$ derM red , rUV
 
-→$-asc-vcc : ∀ {Γ} {σ τ} → (P : ASC⟪ Γ ⊢ σ ⟫ τ ε) → (M : Trm σ Γ) →
-  ((asc-to-vcc P) ⟪ M ⟫VCC) →$ (P ⟪ M ⟫ASC)
-→$-asc-vcc ⟪- ρ -⟫ M
-  rewrite VCC-betaV ρ M ⟪- refl^Var -⟫ | ι^Var-lemma M = →βV-$ (betaV-Trm ρ M)
-→$-asc-vcc (P `* V) M with →$-asc-vcc P M
+→$-asc-ivcc : ∀ {Γ} {σ τ} → (P : ASC⟪ Γ ⊢ σ ⟫ τ ε) → (M : Trm σ Γ) →
+  ((asc-to-ivcc P) ⟪ M ⟫IVCC) →$ (P ⟪ M ⟫ASC)
+→$-asc-ivcc ⟪- ρ -⟫ M rewrite IVCC-sub-βV ρ ⟪-⟫ M = →βV-$ (βV-subst₀ ρ M)
+→$-asc-ivcc (P `* V) M with →$-asc-ivcc P M
 ... | →$PM = →MN-$ →$PM
 
-vcc-sim→asc-sim^T : ∀ {Γ} {τ} {M N} →
-  vcc-sim M N → asc-sim {`trm} {Γ} {τ} M N
-vcc-sim→asc-sim^T {Γ} {τ} {M} {N} sMN ⟪- ρ -⟫ = vcc-sim→sim^T sMN ρ
-vcc-sim→asc-sim^T {Γ} {τ} {M} {N} sMN (P `* V)
-  with sMN (appVCC (asc-to-vcc P) V)
-... | hyp = lemma-2-10i-$ (→MN-$ (→$-asc-vcc P M))
-                          (lemma-2-10ii-$ hyp (→MN-$ (→$-asc-vcc P N)))
+ivcc-sim→asc-sim^T : ∀ {Γ} {τ} {M N} →
+  ivcc-sim M N → asc-sim {`trm} {Γ} {τ} M N
+ivcc-sim→asc-sim^T {Γ} {τ} {M} {N} sMN ⟪- ρ -⟫ = ivcc-sim→sim^T sMN ρ
+ivcc-sim→asc-sim^T {Γ} {τ} {M} {N} sMN (P `* V)
+  with sMN (appIVCC (asc-to-ivcc P) V)
+... | hyp = lemma-2-10i-$ (→MN-$ (→$-asc-ivcc P M))
+                          (lemma-2-10ii-$ hyp (→MN-$ (→$-asc-ivcc P N)))
 
 -- ASCs are contained within VSCs
 
 cxt-sim→asc-sim^T : ∀ {Γ} {τ} {M N} → cxt-sim M N → asc-sim {`trm} {Γ} {τ} M N
-cxt-sim→asc-sim^T {Γ} {τ} {M} {N} sMN with cxt-sim→vcc-sim^T sMN
-... | sMN-VCC = vcc-sim→asc-sim^T sMN-VCC
+cxt-sim→asc-sim^T {Γ} {τ} {M} {N} sMN with cxt-sim→ivcc-sim^T sMN
+... | sMN-IVCC = ivcc-sim→asc-sim^T sMN-IVCC
