@@ -111,33 +111,6 @@ asc-to-ivcc : ∀ {Γ} {σ τ} → ASC⟪ Γ ⊢ σ ⟫ τ ε → IVCC⟪ Γ ⊢
 asc-to-ivcc ⟪- ρ -⟫ = IVCC-sub ρ ⟪-⟫
 asc-to-ivcc (P `* V) = appIVCC (asc-to-ivcc P) V
 
--- Reduction under application (term application simulated with let).
-data _→$_ : GRel₀^T where
- →βV-$ : {σ : Ty} {M N : Trm₀ σ} → M →βV N → M →$ N
- →MN-$ : {σ τ : Ty} {M M' : Trm₀ σ} {N : (σ ⊢ Trm τ) _} →
-   M →$ M' → `let M N →$ `let M' N
-
-lemma-2-3i-$ : {τ : Ty} {M N : Trm₀ τ} {V : Val₀ τ} →
-                (dev : M ⇓ V) → (red : M →$ N) → N ⇓ V
-lemma-2-3i-$ dev (→βV-$ βV) = lemma-2-3i-βV dev βV
-lemma-2-3i-$ (⇓let derM derN) (→MN-$ red) with lemma-2-3i-$ derM red
-... | iH = ⇓let iH derN
-
-lemma-2-3ii-$ : {τ : Ty} {M N : Trm₀ τ} {V : Val₀ τ} →
-                 (red : M →$ N) → (dev : N ⇓ V) → M ⇓ V
-lemma-2-3ii-$ (→βV-$ βV) dev = lemma-2-3ii-βV βV dev
-lemma-2-3ii-$ (→MN-$ red) (⇓let derM derN) =
-  ⇓let (lemma-2-3ii-$ red derM) derN
-
-lemma-2-10i-$ : {ℓ^V : Level} {τ : Ty} {R : GRel^V {ℓ^V} {τ}}
-  {M N P : Trm₀ τ} → M →$ P → (M [ R ]^T N) → P [ R ]^T N
-lemma-2-10i-$ red r = r ∘ (lemma-2-3ii-$ red)
-
-lemma-2-10ii-$ : {ℓ^V : Level} {τ : Ty} {R : GRel^V {ℓ^V} {τ}}
-  {M N P : Trm₀ τ} → (M [ R ]^T N) → N →$ P → M [ R ]^T P
-lemma-2-10ii-$ r red der with r der
-... | V , derM , rUV = V , lemma-2-3i-$ derM red , rUV
-
 →$-asc-ivcc : ∀ {Γ} {σ τ} → (P : ASC⟪ Γ ⊢ σ ⟫ τ ε) → (M : Trm σ Γ) →
   ((asc-to-ivcc P) ⟪ M ⟫IVCC) →$ (P ⟪ M ⟫ASC)
 →$-asc-ivcc ⟪- ρ -⟫ M rewrite IVCC-sub-βV ρ ⟪-⟫ M = →βV-$ (βV-subst₀ ρ M)
