@@ -260,34 +260,43 @@ ext₀^Var-ext {Γ} {Δ} {σ} {r} {r'} eq =
   [ P ][ PEq.refl ,,,  PEq.cong su ∘ eq ]
  where P = λ {τ} v → var (ext₀^Var {σ} {Γ} r) {τ} v ≡ var (ext₀^Var r') v
 
--- TODO: Come up with a more informative name for this lemma.
+ren-sub : ∀ {f} {Γ Δ Θ} {σ} → (E : Exp {f} σ Γ) →
+  (r : Γ ⊆ Δ) → (ρ : Δ ⊨ Θ) → {ρ' : Γ ⊨ Θ} →
+  (∀ {τ} v → var ρ {τ} (var r v) ≡ var ρ' v) →
+  subst (r *-Var E) ρ ≡ subst E ρ'
+ren-sub E r ρ {ρ'} eq = lemma E {r} {ρ} eq
+  where open Fuse (syntacticFusion Ren-sub-fusion)
+
+-- Special cases of ren-sub
+
+-- The substitution and renaming compose to the identity substitution.
 ι^Var^Env-lemma-aux :
   ∀ {f} {Γ Δ} {σ} → (E : Exp {f} σ Γ) → (r : Γ ⊆ Δ) → (ρ : Δ ⊨ Γ) →
   (∀ {τ} v → var ρ {τ} (var r v) ≡ `var v) →
   subst (r *-Var E) ρ ≡ E
-ι^Var^Env-lemma-aux E r ρ eq = prf
-  where open Fuse (syntacticFusion Ren-sub-fusion)
+ι^Var^Env-lemma-aux E r ρ eq with ren-sub E r ρ eq
+... | prf rewrite ι^Env-lemma-aux (λ v → PEq.refl) E = prf
 
-        prf : subst (r *-Var E) ρ ≡ E
-        prf with lemma E {ρ^A = r} {ρ} eq
-        ... | hyp rewrite ι^Env-lemma-aux (λ v → PEq.refl) E = hyp
+-- Special case of ι^Var^Env: weakening and a single substition.
+weak-sub : ∀ {f} {Γ} {σ τ} → (V : Val τ Γ) → (E : Exp {f} σ Γ) →
+  (weak *-Var E) ⟨ V /var₀⟩ ≡ E
+weak-sub V E = ι^Var^Env-lemma-aux E weak (ι^Env `∙ V) (λ v → PEq.refl)
+
+sub-ren : ∀ {f} {Γ Δ Θ} {σ} → (E : Exp {f} σ Γ) →
+  (ρ : Γ ⊨ Δ) → (r : Δ ⊆ Θ) → {ρ' : Γ ⊨ Θ} →
+  (∀ {τ} v → ren (var ρ {τ} v) r ≡ var ρ' v) →
+  ren (subst E ρ) r ≡ subst E ρ'
+sub-ren E ρ r {ρ'} eq = lemma E {ρ} {r} eq
+  where open Fuse (syntacticFusion Sub-ren-fusion)
 
 ren-sub→sub-ren : ∀ {f} {Γ Δ Ξ Ω} {σ} →
   (E : Exp {f} σ Γ) → (r : Γ ⊆ Δ) → (r' : Ω ⊆ Ξ)
   (ρ : Δ ⊨ Ξ) → (ρ' : Γ ⊨ Ω) →
   (∀ {τ} v → var ρ {τ} (var r v) ≡ ren (var ρ' v) r') →
   subst (ren E r) ρ ≡ ren (subst E ρ') r'
-ren-sub→sub-ren E r r' ρ ρ' eq = PEq.trans prf prf'
-  where module RenSub = Fuse (syntacticFusion Ren-sub-fusion)
-        module SubRen = Fuse (syntacticFusion Sub-ren-fusion)
-
-        prf : subst (ren E r) ρ ≡ subst E (Thin.th 𝓥al ρ' r')
-        prf = RenSub.lemma E {r} {ρ} eq
+ren-sub→sub-ren E r r' ρ ρ' eq =  PEq.trans prf prf'
+  where prf : subst (ren E r) ρ ≡ subst E (Thin.th 𝓥al ρ' r')
+        prf = ren-sub E r ρ eq
 
         prf' : subst E (Thin.th 𝓥al ρ' r') ≡ ren (subst E ρ') r'
-        prf' = PEq.sym (SubRen.lemma E {ρ'} {r'} (λ v → PEq.refl))
-
--- Special case of ι^Var^Env: weakening and a single substition.
-weak-sub : ∀ {f} {Γ} {σ τ} → (V : Val τ Γ) → (E : Exp {f} σ Γ) →
-  (weak *-Var E) ⟨ V /var₀⟩ ≡ E
-weak-sub V E = ι^Var^Env-lemma-aux E weak (ι^Env `∙ V) (λ v → PEq.refl)
+        prf' = PEq.sym (sub-ren E ρ' r' (λ v → PEq.refl))
