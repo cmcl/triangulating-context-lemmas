@@ -121,11 +121,11 @@ ivcc-sim→asc-sim^T : ∀ {Γ} {τ} {M N} →
   ivcc-sim M N → asc-sim {`trm} {Γ} {τ} M N
 ivcc-sim→asc-sim^T {Γ} {τ} {M} {N} sMN ⟪- ρ -⟫ = ivcc-sim→sim^T sMN ρ
 ivcc-sim→asc-sim^T {Γ} {τ} {M} {N} sMN (P `* V)
-  with sMN (appIVCC (asc-to-ivcc P) V)
+  with sMN (asc-to-ivcc (P `* V))
 ... | hyp = lemma-2-10i-$ (→MN-$ (→$-asc-ivcc P M))
                           (lemma-2-10ii-$ hyp (→MN-$ (→$-asc-ivcc P N)))
 
--- ASCs are contained within VSCs
+-- ASC apx is contained within VSC apx.
 
 cxt-sim→asc-sim^T : ∀ {Γ} {τ} {M N} → cxt-sim M N → asc-sim {`trm} {Γ} {τ} M N
 cxt-sim→asc-sim^T {Γ} {τ} {M} {N} sMN with cxt-sim→ivcc-sim^T sMN

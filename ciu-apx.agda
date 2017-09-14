@@ -117,7 +117,7 @@ ivcc-sim→ciu-sim^T {Γ} {τ} {M} {N} sMN (P `⋉ T)
 ... | hyp = lemma-2-10i-$ (→MN-$ (→$-ciu-ivcc⟪ M ⟫ P))
                           (lemma-2-10ii-$ hyp (→MN-$ (→$-ciu-ivcc⟪ N ⟫ P)))
 
--- CIUs are contained within VSCs
+-- CIU apx is contained within VSC apx.
 
 cxt-sim→ciu-sim^T : ∀ {Γ} {τ} {M N} → cxt-sim M N → ciu-sim {`trm} {Γ} {τ} M N
 cxt-sim→ciu-sim^T {Γ} {τ} {M} {N} sMN with cxt-sim→ivcc-sim^T sMN
