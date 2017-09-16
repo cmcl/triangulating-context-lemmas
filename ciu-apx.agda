@@ -13,7 +13,7 @@ open import acmm
 open import relations
 open import sim-fusion-lemmas
 open import obs-apx
-open import ivcc-apx
+open import vcc-apx
 open import big-step-prop
 
 -- Contexts; contextual equivalence; the intricate stuff
@@ -100,25 +100,25 @@ ciu-sim₀ {f} = case f return (λ f → ∀ {υ} → Rel^E {f} {_} {ε} {υ})
   simV {τ} = _[ simT {τ} ]^V_
   simT     = ciu-sim {`trm} {ε}
 
-ciu-to-ivcc : ∀ {Γ} {σ τ} → CIU⟪ Γ ⊢ σ ⟫ τ ε → IVCC⟪ Γ ⊢ σ ⟫ {`trm} τ ε
-ciu-to-ivcc ⟪- ρ -⟫ = IVCC-sub ρ ⟪-⟫
-ciu-to-ivcc (P `⋉ M) = `let (ciu-to-ivcc P) (`exp M)
+ciu-to-vcc : ∀ {Γ} {σ τ} → CIU⟪ Γ ⊢ σ ⟫ τ ε → VCC⟪ Γ ⊢ σ ⟫ {`trm} τ ε
+ciu-to-vcc ⟪- ρ -⟫ = VCC-sub ρ ⟪-⟫
+ciu-to-vcc (P `⋉ M) = `let (ciu-to-vcc P) (`exp M)
 
-→$-ciu-ivcc⟪_⟫ : ∀ {Γ} {σ τ} → (T : Trm σ Γ) → (P : CIU⟪ Γ ⊢ σ ⟫ τ ε) →
-  ((ciu-to-ivcc P) ⟪ T ⟫IVCC) →$ (P ⟪ T ⟫CIU)
-→$-ciu-ivcc⟪ T ⟫ ⟪- ρ -⟫ rewrite IVCC-sub-βV ρ ⟪-⟫ T = →βV-$ (βV-subst₀ ρ T)
-→$-ciu-ivcc⟪ T ⟫ (P `⋉ M) = →MN-$ (→$-ciu-ivcc⟪ T ⟫ P)
+→$-ciu-vcc⟪_⟫ : ∀ {Γ} {σ τ} → (T : Trm σ Γ) → (P : CIU⟪ Γ ⊢ σ ⟫ τ ε) →
+  ((ciu-to-vcc P) ⟪ T ⟫VCC) →$ (P ⟪ T ⟫CIU)
+→$-ciu-vcc⟪ T ⟫ ⟪- ρ -⟫ rewrite VCC-sub-βV ρ ⟪-⟫ T = →βV-$ (βV-subst₀ ρ T)
+→$-ciu-vcc⟪ T ⟫ (P `⋉ M) = →MN-$ (→$-ciu-vcc⟪ T ⟫ P)
 
-ivcc-sim→ciu-sim^T : ∀ {Γ} {τ} {M N} →
-  ivcc-sim M N → ciu-sim {`trm} {Γ} {τ} M N
-ivcc-sim→ciu-sim^T {Γ} {τ} {M} {N} sMN ⟪- ρ -⟫ = ivcc-sim→sim^T sMN ρ
-ivcc-sim→ciu-sim^T {Γ} {τ} {M} {N} sMN (P `⋉ T)
-  with sMN (ciu-to-ivcc (P `⋉ T))
-... | hyp = lemma-2-10i-$ (→MN-$ (→$-ciu-ivcc⟪ M ⟫ P))
-                          (lemma-2-10ii-$ hyp (→MN-$ (→$-ciu-ivcc⟪ N ⟫ P)))
+vcc-sim→ciu-sim^T : ∀ {Γ} {τ} {M N} →
+  vcc-sim M N → ciu-sim {`trm} {Γ} {τ} M N
+vcc-sim→ciu-sim^T {Γ} {τ} {M} {N} sMN ⟪- ρ -⟫ = vcc-sim→sim^T sMN ρ
+vcc-sim→ciu-sim^T {Γ} {τ} {M} {N} sMN (P `⋉ T)
+  with sMN (ciu-to-vcc (P `⋉ T))
+... | hyp = lemma-2-10i-$ (→MN-$ (→$-ciu-vcc⟪ M ⟫ P))
+                          (lemma-2-10ii-$ hyp (→MN-$ (→$-ciu-vcc⟪ N ⟫ P)))
 
 -- CIU apx is contained within VSC apx.
 
 cxt-sim→ciu-sim^T : ∀ {Γ} {τ} {M N} → cxt-sim M N → ciu-sim {`trm} {Γ} {τ} M N
-cxt-sim→ciu-sim^T {Γ} {τ} {M} {N} sMN with cxt-sim→ivcc-sim^T sMN
-... | sMN-IVCC = ivcc-sim→ciu-sim^T sMN-IVCC
+cxt-sim→ciu-sim^T {Γ} {τ} {M} {N} sMN with cxt-sim→vcc-sim^T sMN
+... | sMN-VCC = vcc-sim→ciu-sim^T sMN-VCC
