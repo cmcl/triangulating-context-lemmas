@@ -106,9 +106,8 @@ lemmaF (↓letT der)             = lemmaF der
 
 ↓standard : ∀ {τ υ} {S : Frm υ τ} {M} {U} → S , M ↓ U →
             ∃ λ V → Id , M ↓ V × S , `val V ↓ U
-↓standard {S = S} der with ⇓letF-lemma S
-... | prfL , prfR with prfL (lemmaF der)
-... | V , derM , derU = V , corollary derM , corollaryF derU
+↓standard {S = S} der with ⇓letF-standard {S = S} (lemmaF der)
+... | V , derM , derV = V , corollary derM , corollaryF derV
 
 letF-ciu : ∀ {Γ} {τ σ ω} (S : Frm τ σ) (P : CIU⟪ Γ ⊢ ω ⟫ σ ε) →
            CIU⟪ Γ ⊢ ω ⟫ τ ε

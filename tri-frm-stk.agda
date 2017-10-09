@@ -200,15 +200,11 @@ lemma-[-]^F-app R^V-λ {`λ M} {`λ N} {V} {W} rMN rVW =
 
 beta-stk-if : ∀ {σ τ ω} {S : Frm σ τ} {M : (ω ⊢ Trm τ) ε}
   {U : Val₀ ω} {V : Val₀ σ} → S , M ⟨ U /var₀⟩ ↓ V → S , `λ M `$ U ↓ V
-beta-stk-if evSMU with ↓standard evSMU
-... | W , evIdMU , evSW with lemmaF evIdMU
-... | derMW = ↓letV-lemma (⇓app derMW) evSW
+beta-stk-if evSMU = ↓red →₁app evSMU
 
 beta-stk-only-if : ∀ {σ τ ω} {S : Frm σ τ} {M : (ω ⊢ Trm τ) ε}
   {U : Val₀ ω} {V : Val₀ σ} → S , `λ M `$ U ↓ V → S , M ⟨ U /var₀⟩ ↓ V
-beta-stk-only-if evSMU with ↓standard evSMU
-... | W , evIdMU , evSW with lemmaF evIdMU
-... | ⇓app derMW = ↓letV-lemma derMW evSW
+beta-stk-only-if (↓red →₁app evSMU) = evSMU
 
 -- Not as slick as James' proof using lemma-[-]^T-app!
 log-frm-sim₀^T-app : ∀ {σ τ} {f g} {a b} → log-frm-sim₀^V {σ `→ τ} f g →
