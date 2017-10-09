@@ -12,7 +12,6 @@ open import Relation.Binary.PropositionalEquality as PEq using (_≡_)
 open import lambda-fg
 open import acmm
 open import relations
-open import sim-fusion-lemmas
 
 lemma-2-1 : {τ : Ty} {M : Trm₀ τ} {U V : Val₀ τ} → M ⇓ U → M ⇓ V → U ≡ V
 lemma-2-1 ⇓val ⇓val = PEq.refl

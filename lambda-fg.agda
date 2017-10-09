@@ -1,6 +1,5 @@
 {-- Fine-grained call-by-value lambda calculus -}
 {-# OPTIONS --copatterns #-}
--- {-# OPTIONS --no-termination-check #-}
 module lambda-fg where
 
 open import Level as L using (Level ; _⊔_)
@@ -136,6 +135,10 @@ mutual
   `let    : admits-let λ {f} → Exp {f}
     -- {σ τ : Ty} → [ Trm σ ⟶ σ ⊢ Trm τ ⟶ Trm τ ]
 
+-- Injection of values into terms
+Val→Trm : PreMorphism Exp Exp -- Val Trm
+Val→Trm = `val
+
 -- (ground) instances
 
 Exp₀ : ∀ {f} τ → Set
@@ -241,6 +244,18 @@ th^Var v inc = var inc v
 𝓥ar : Model Var
 𝓥ar = mkModel th^Var
 
+record Morphism {ℓ^V ℓ^T : Level}
+ {𝓥 : PreModel ℓ^V} (Θ : Model 𝓥) (𝓣 : PreModel ℓ^T) : Set (ℓ^V ⊔ ℓ^T)
+ where
+  constructor mkMorphism
+  field inj : PreMorphism 𝓥 𝓣
+
+ι^Inj : {ℓ : Level} {𝓥 : PreModel ℓ} {Θ : Model 𝓥} → Morphism Θ 𝓥
+ι^Inj = mkMorphism id
+
+Var→Val : Morphism 𝓥ar Val
+Var→Val = mkMorphism `var
+
 module Thin {ℓ : Level} {𝓒 : PreModel ℓ} (Θ : Model 𝓒) where
 
  open Model Θ
@@ -258,6 +273,8 @@ module Thin {ℓ : Level} {𝓒 : PreModel ℓ} (Θ : Model 𝓒) where
 ext^Var : ∀ {Γ Δ Θ} {σ} → (Γ ⊆ Δ) → (Δ ⊆ Θ) → (Var σ Θ) → (Γ ∙ σ) ⊆ Θ
 ext^Var ρ inc u = ext ρ inc u where open Thin 𝓥ar
 
+-- Context extension
+
 record Model₀ {ℓ^V : Level} {𝓥 : PreModel ℓ^V} (Θ : Model 𝓥) : Set (ℓ^V)
  where
   constructor mkVar₀
@@ -265,6 +282,10 @@ record Model₀ {ℓ^V : Level} {𝓥 : PreModel ℓ^V} (Θ : Model 𝓥) : Set 
 
 𝓥ar₀ : Model₀ 𝓥ar
 𝓥ar₀ = mkVar₀ ze
+
+val₀ : ∀ {Γ} {σ} → (σ ⊢ Val σ) Γ
+val₀ {Γ} {σ} = inj var₀
+ where open Morphism Var→Val ; open Model₀ 𝓥ar₀
 
 module Ext₀ {ℓ^V : Level} {𝓥 : PreModel ℓ^V} {Θ : Model 𝓥} (mod : Model₀ Θ)
  where

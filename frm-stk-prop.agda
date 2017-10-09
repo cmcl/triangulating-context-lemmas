@@ -9,7 +9,6 @@ open import Relation.Binary.PropositionalEquality as PEq using (_≡_)
 
 open import lambda-fg
 open import acmm
-open import sim-fusion-lemmas
 open import relations
 open import big-step-prop
 open import obs-apx
