@@ -37,7 +37,7 @@ data Cx : Set where
   ε    : Cx
   _∙_  : Cx → Ty → Cx
 
--- Operators which simplify the presentation of the calculus.
+-- Generic operations on Cx-indexed families
 
 infixr 5 _⟶_
 
@@ -52,10 +52,14 @@ _⟶_ : {ℓ^A ℓ^E : Level} →
 [_] : {ℓ^A : Level} → (Cx → Set ℓ^A) → Set ℓ^A
 [ T ] = ∀ {Γ} → T Γ
 
+-- Syntax for extending a Cx-indexed family by a single Ty
 _⊢_ : {ℓ^A : Level} → Ty → (Cx → Set ℓ^A) → (Cx → Set ℓ^A)
 (σ ⊢ S) Γ = S (Γ ∙ σ)
 
 infixr 6 _⊢_
+
+-- Type- and Scope-safe variable bindings, 
+-- as dependently-typed de Bruijn indices
 
 data Var (τ : Ty) : Cx → Set where
   ze  :            -- ∀ Γ. Var τ (Γ ∙ τ)
@@ -72,7 +76,9 @@ infix 5 [_][_,,,_]
 [ P ][ pZ ,,, pS ] ze     = pZ
 [ P ][ pZ ,,, pS ] (su n) = pS n
 
+-- Judgments-as-types (sic)
 -- The type of the grammar in lambda-fg.
+
 PreModel : (ℓ : Level) → Set (L.suc ℓ)
 PreModel ℓ = Ty → Cx → Set ℓ
 
@@ -173,6 +179,8 @@ letV V M = `let (`val V) M
  (eq : (Val (σ `→ τ) Γ F.∋ `λ M) ≡ `λ N) → M ≡ N
 `λ-inj PEq.refl = PEq.refl
 
+-- Environments
+
 infix 5 _-Env
 
 record _-Env {ℓ : Level} (Γ : Cx) (𝓥 : PreModel ℓ) (Δ : Cx) : Set ℓ
@@ -182,8 +190,12 @@ record _-Env {ℓ : Level} (Γ : Cx) (𝓥 : PreModel ℓ) (Δ : Cx) : Set ℓ
 infix 6 _⊆_
 infixr 6 _⊨_
 
+-- renamings: arbitrary weakenings and permutations
+
 _⊆_ : (Γ Δ : Cx) → Set
 Γ ⊆ Δ = (Γ -Env) Var Δ
+
+-- Value substitutions
 
 _⊨_ : (Γ Δ : Cx) → Set
 Γ ⊨ Δ = (Γ -Env) Val Δ --  ⊨ is fatter than ⊧, \models;  ⊨ is '\ | ='
@@ -234,14 +246,20 @@ var `ε        ()
 var (ρ `∙ s)  ze      = s
 var (ρ `∙ s)  (su n)  = var ρ n
 
+-- The fundamental Kripke co-monad structure on Premodels.
+
 □ : {ℓ : Level} → (Cx → Set ℓ) → (Cx → Set ℓ)
 (□ S) Γ = {Δ : Cx} → Γ ⊆ Δ → S Δ
 
 Thinnable : {ℓ : Level} → (Cx → Set ℓ) → Set ℓ
 Thinnable S = [ S ⟶ (□ S) ] -- {Γ Δ : Cx} → S Γ → Γ ⊆ Δ → S Δ
 
+-- Syntactic categories are Premodels closed under thinning.
+
 record Model {ℓ : Level} (𝓥 : PreModel ℓ) : Set ℓ where
   constructor mkModel; field thin : {σ : Ty} → Thinnable (𝓥 σ)
+
+-- In particular, variables are closed under thinning.
 
 th^Var : {σ : Ty} → Thinnable (Var σ)
 th^Var v inc = var inc v
@@ -261,6 +279,8 @@ record Morphism {ℓ^V ℓ^T : Level}
 Var→Val : Morphism 𝓥ar Val
 Var→Val = mkMorphism `var
 
+-- structure of Thinnables
+
 module Thin {ℓ : Level} {𝓒 : PreModel ℓ} (Θ : Model 𝓒) where
 
  open Model Θ
@@ -278,7 +298,7 @@ module Thin {ℓ : Level} {𝓒 : PreModel ℓ} (Θ : Model 𝓒) where
 ext^Var : ∀ {Γ Δ Θ} {σ} → (Γ ⊆ Δ) → (Δ ⊆ Θ) → (Var σ Θ) → (Γ ∙ σ) ⊆ Θ
 ext^Var ρ inc u = ext ρ inc u where open Thin 𝓥ar
 
--- Context extension
+-- having a notion of distinguished element under context extension
 
 record Model₀ {ℓ^V : Level} {𝓥 : PreModel ℓ^V} (Θ : Model 𝓥) : Set (ℓ^V)
  where
@@ -303,41 +323,15 @@ module Ext₀ {ℓ^V : Level} {𝓥 : PreModel ℓ^V} {Θ : Model 𝓥} (mod : M
 ext₀^Var : {σ : Ty} {Γ Δ : Cx} → Γ ⊆ Δ → (Γ ∙ σ) ⊆ (Δ ∙ σ)
 ext₀^Var = ext₀ where open Ext₀ 𝓥ar₀
 
-pop! : {σ : Ty} {Γ Δ : Cx} → Γ ⊆ Δ → (Γ ∙ σ) ⊆ (Δ ∙ σ)
-pop! = ext₀^Var
-
-pop!-refl′ : {Γ : Cx} {σ : Ty} {f : Γ ⊆ Γ}
-             (prf : {τ : Ty} (v : Var τ Γ) → var f v ≡ v) →
-             {τ : Ty} (v : Var τ (Γ ∙ σ)) → var (pop! f) {τ} v ≡ v
-pop!-refl′ {Γ} {σ} {f} prf = [ P ][ PEq.refl ,,, PEq.cong su ∘ prf ]
-  where P : {τ : Ty} (v : Var τ (Γ ∙ σ)) → Set
-        P {τ} v = var (pop! f) {τ} v ≡ v
-
-pop!-refl : {Γ : Cx} {σ τ : Ty}
-            (v : Var τ (Γ ∙ σ)) → var (pop! refl^Var) {τ} v ≡ v
-pop!-refl v = pop!-refl′ (λ _ → PEq.refl) v
-
-pop!-trans′ : {Θ Δ Γ : Cx} {σ : Ty} {inc₁ : Γ ⊆ Δ} {inc₂ : Δ ⊆ Θ}
-              {inc : Γ ⊆ Θ}
-              (prf : {σ : Ty} (v : Var σ Γ) →
-                     var inc v ≡ var (trans^Var inc₁ inc₂) v)
-              {τ : Ty} (v : Var τ (Γ ∙ σ)) →
-              var (pop! inc) v ≡ var (trans^Var (pop! inc₁) (pop! inc₂)) v
-pop!-trans′ {Θ} {Δ} {Γ} {σ} {inc₁} {inc₂} {inc} prf =
-  [ P ][ PEq.refl ,,, PEq.cong su ∘ prf ]
-  where P : {τ : Ty} (v : Var τ (Γ ∙ σ)) → Set
-        P {τ} v = 
-          var (pop! inc) {τ} v ≡ var (trans^Var (pop! inc₁) (pop! inc₂)) v
-
-pop!-trans : {Θ Δ Γ : Cx} {σ : Ty} {inc₁ : Γ ⊆ Δ} {inc₂ : Δ ⊆ Θ}
-             {τ : Ty} (v : Var τ (Γ ∙ σ)) →
-             var (pop! (trans^Var inc₁ inc₂)) v ≡ var (trans^Var (pop! inc₁)
-                                                       (pop! inc₂)) v
-pop!-trans v = pop!-trans′ (λ _ → PEq.refl) v
-
 -- Framestacks
 
 data Frm : Ty → (Ty → Set) where
 
  Id   : ∀ {τ}                                       → Frm τ τ
  _∙_  : ∀ {υ τ σ} (S : Frm υ τ) (N : (σ ⊢ Trm τ) ε) → Frm υ σ
+
+-- Left action (@) over frame stacks.
+
+letF : ∀ {τ σ} (S : Frm τ σ) (M : Trm₀ σ) → Trm₀ τ
+letF   Id    M = M
+letF (S ∙ N) M = letF S (`let M N)

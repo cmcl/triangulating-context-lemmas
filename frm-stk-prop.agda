@@ -14,10 +14,6 @@ open import big-step-prop
 open import obs-apx
 open import ciu-apx
 
-letF : ∀ {τ σ} (S : Frm τ σ) (M : Trm₀ σ) → Trm₀ τ
-letF   Id    M = M
-letF (S ∙ N) M = letF S (`let M N)
-
 ⇓letF-lemma : ∀ {σ τ} (S : Frm τ σ) →
  (∀ {M} {U} → letF S M ⇓ U → ∃ λ V → M ⇓ V × letF S (`val V) ⇓ U)
  ×
