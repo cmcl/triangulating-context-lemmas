@@ -16,12 +16,12 @@ open import obs-apx
 open import vcc-apx
 open import big-step-prop
 
--- Contexts; contextual equivalence; the intricate stuff
+-- CIU Contexts
 infixr 20 ⟪-_-⟫
---infixr 20 _⟪_⟫CIU
---infixr 20 _⟪∘⟫CIU_
---infixr 20 _⟪∘_⟫CIU_
---infixr 20 CIU⟪_⊢_⟫
+infixr 20 _⟪_⟫CIU
+infixr 20 _⟪∘⟫CIU_
+infixr 20 _⟪∘_⟫CIU_
+infixr 20 CIU⟪_⊢_⟫
 
 infixl 5 _`⋉_
 
@@ -63,7 +63,6 @@ _⟪∘⟫CIU_ : ∀ {Γ Δ Ξ} {σ τ υ}
 ⟪- ρ -⟫  ⟪∘⟫CIU Q =  substCIU Q ρ
 (P `⋉ M) ⟪∘⟫CIU Q = P ⟪∘⟫CIU Q `⋉ M
 
-
 -- commutation between composition and instantiation
 
 _⟪∘_⟫CIU_ : ∀ {Γ Δ Ξ} {σ τ υ} (P : CIU⟪ Δ ⊢ σ ⟫ τ Ξ) (T : Trm υ Γ) →
@@ -72,34 +71,36 @@ _⟪∘_⟫CIU_ : ∀ {Γ Δ Ξ} {σ τ υ} (P : CIU⟪ Δ ⊢ σ ⟫ τ Ξ) (T 
 ⟪- ρ -⟫   ⟪∘ T ⟫CIU Q = Q substCIU⟪ T ⟫ ρ
 (F `⋉ V)  ⟪∘ T ⟫CIU Q rewrite F ⟪∘ T ⟫CIU Q = PEq.refl
 
--- CIU Contexts simulation/approximation
+-- CIU approximation
 -- The fundamental relations, quantifying over all CIU contexts.
 
-ciu-sim : ∀ {f} {Γ} {υ} → Rel^E {f} {L.zero} {Γ} {υ}
-ciu-sim {f} = case f return (λ f → ∀ {Γ} {υ} → Rel^E {f} {_} {Γ} {υ})
- of λ { `val → simV ; `trm → simT }
+ciu-apx : ∀ {f} {Γ} {υ} → Rel^E {f} {L.zero} {Γ} {υ}
+ciu-apx {f} = case f return (λ f → ∀ {Γ} {υ} → Rel^E {f} {_} {Γ} {υ})
+ of λ { `val → apxV ; `trm → apxT }
  where
-  simV : ∀ {Γ} {τ} → Rel^V {_} {Γ} {τ}
-  simT : ∀ {Γ} {τ} → Rel^T {_} {Γ} {τ}
-  simV {Γ} {τ}     = _[ simT {Γ} {τ} ]^V_
-  simT {Γ} {τ} M N =
-    {σ : Ty} (P : CIU⟪ Γ ⊢ τ ⟫ σ ε) → sim₀ {`trm} (P ⟪ M ⟫CIU) (P ⟪ N ⟫CIU)
+  apxV : ∀ {Γ} {τ} → Rel^V {_} {Γ} {τ}
+  apxT : ∀ {Γ} {τ} → Rel^T {_} {Γ} {τ}
+  apxV {Γ} {τ}     = _[ apxT {Γ} {τ} ]^V_
+  apxT {Γ} {τ} M N =
+    {σ : Ty} (P : CIU⟪ Γ ⊢ τ ⟫ σ ε) →
+    gnd-eqv₀ {`trm} (P ⟪ M ⟫CIU) (P ⟪ N ⟫CIU)
 
--- open simulation follows trivially: use the obvious context, the hole
--- itself!
+-- open ground equivalence follows trivially: use the obvious context, the
+-- hole itself!
 
-ciu-sim→sim^T : ∀ {Γ} {τ} {M N} → ciu-sim M N → sim {`trm} {Γ} {τ} M N
-ciu-sim→sim^T {Γ} {τ} sMN ρ = sMN P where P = ⟪- ρ -⟫
+ciu-apx→gnd-eqv^T : ∀ {Γ} {τ} {M N} → ciu-apx M N → gnd-eqv {`trm} {Γ} {τ} M N
+ciu-apx→gnd-eqv^T {Γ} {τ} sMN ρ = sMN P where P = ⟪- ρ -⟫
 
-ciu-sim₀ : GRel₀^E
-ciu-sim₀ {f} = case f return (λ f → ∀ {υ} → Rel^E {f} {_} {ε} {υ})
- of λ { `val → simV ; `trm → simT }
+ciu-apx₀ : GRel₀^E
+ciu-apx₀ {f} = case f return (λ f → ∀ {υ} → Rel^E {f} {_} {ε} {υ})
+ of λ { `val → apxV ; `trm → apxT }
  where
-  simV : GRel₀^V
-  simT : GRel₀^T
-  simV {τ} = _[ simT {τ} ]^V_
-  simT     = ciu-sim {`trm} {ε}
+  apxV : GRel₀^V
+  apxT : GRel₀^T
+  apxV {τ} = _[ apxT {τ} ]^V_
+  apxT     = ciu-apx {`trm} {ε}
 
+-- The black diamond operator in the paper.
 ciu-to-vcc : ∀ {Γ} {σ τ} → CIU⟪ Γ ⊢ σ ⟫ τ ε → VCC⟪ Γ ⊢ σ ⟫ {`trm} τ ε
 ciu-to-vcc ⟪- ρ -⟫ = VCC-sub ρ ⟪-⟫
 ciu-to-vcc (P `⋉ M) = `let (ciu-to-vcc P) (`exp M)
@@ -109,16 +110,16 @@ ciu-to-vcc (P `⋉ M) = `let (ciu-to-vcc P) (`exp M)
 →$-ciu-vcc⟪ T ⟫ ⟪- ρ -⟫ rewrite VCC-sub-βV ρ ⟪-⟫ T = →βV-$ (βV-subst₀ ρ T)
 →$-ciu-vcc⟪ T ⟫ (P `⋉ M) = →MN-$ (→$-ciu-vcc⟪ T ⟫ P)
 
-vcc-sim→ciu-sim^T : ∀ {Γ} {τ} {M N} →
-  vcc-sim M N → ciu-sim {`trm} {Γ} {τ} M N
-vcc-sim→ciu-sim^T {Γ} {τ} {M} {N} sMN ⟪- ρ -⟫ = vcc-sim→sim^T sMN ρ
-vcc-sim→ciu-sim^T {Γ} {τ} {M} {N} sMN (P `⋉ T)
+vcc-apx→ciu-apx^T : ∀ {Γ} {τ} {M N} →
+  vcc-apx M N → ciu-apx {`trm} {Γ} {τ} M N
+vcc-apx→ciu-apx^T {Γ} {τ} {M} {N} sMN ⟪- ρ -⟫ = vcc-apx→gnd-eqv^T sMN ρ
+vcc-apx→ciu-apx^T {Γ} {τ} {M} {N} sMN (P `⋉ T)
   with sMN (ciu-to-vcc (P `⋉ T))
 ... | hyp = lemma-2-10i-$ (→MN-$ (→$-ciu-vcc⟪ M ⟫ P))
                           (lemma-2-10ii-$ hyp (→MN-$ (→$-ciu-vcc⟪ N ⟫ P)))
 
 -- CIU apx is contained within VSC apx.
 
-cxt-sim→ciu-sim^T : ∀ {Γ} {τ} {M N} → cxt-sim M N → ciu-sim {`trm} {Γ} {τ} M N
-cxt-sim→ciu-sim^T {Γ} {τ} {M} {N} sMN with cxt-sim→vcc-sim^T sMN
-... | sMN-VCC = vcc-sim→ciu-sim^T sMN-VCC
+vsc-apx→ciu-apx^T : ∀ {Γ} {τ} {M N} → vsc-apx M N → ciu-apx {`trm} {Γ} {τ} M N
+vsc-apx→ciu-apx^T {Γ} {τ} {M} {N} sMN with vsc-apx→vcc-apx^T sMN
+... | sMN-VCC = vcc-apx→ciu-apx^T sMN-VCC

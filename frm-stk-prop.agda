@@ -1,6 +1,6 @@
-{--------------------------------}
-{-- Properties of frame stacks. -}
-{--------------------------------}
+{-----------------------------------------------------}
+{-- Properties of frame stacks and standardisation. --}
+{-----------------------------------------------------}
 module frm-stk-prop where
 
 open import Data.Product hiding (map)
@@ -13,6 +13,8 @@ open import relations
 open import big-step-prop
 open import obs-apx
 open import ciu-apx
+
+-- Lemma 4.6 (3)/(4).
 
 ⇓letF-lemma : ∀ {σ τ} (S : Frm τ σ) →
  (∀ {M} {U} → letF S M ⇓ U → ∃ λ V → M ⇓ V × letF S (`val V) ⇓ U)
@@ -84,9 +86,11 @@ open import ciu-apx
 ↓letV-lemma (⇓let derM derN) =
   ↓letT ∘ (↓letV-lemma derM) ∘ ↓letV ∘ (↓letV-lemma derN)
 
+-- Lemma 4.6(1)
 corollary : ∀ {τ} {M} {V} → M ⇓ V → (Id {τ}) , M ↓ V
 corollary der = ↓letV-lemma der ↓val
 
+-- Lemma 4.6(2)
 corollaryF : ∀ {τ υ} {S : Frm υ τ} {M} {U} → letF S M ⇓ U → S , M ↓ U
 corollaryF {S = S} = (↓letF-unwind-lemma S) ∘ corollary
 
@@ -104,6 +108,9 @@ lemmaF (↓letT der)             = lemmaF der
             ∃ λ V → Id , M ↓ V × S , `val V ↓ U
 ↓standard {S = S} der with ⇓letF-standard {S = S} (lemmaF der)
 ... | V , derM , derV = V , corollary derM , corollaryF derV
+
+
+-- Left action over frame stacks lifted to CIU contexts.
 
 letF-ciu : ∀ {Γ} {τ σ ω} (S : Frm τ σ) (P : CIU⟪ Γ ⊢ ω ⟫ σ ε) →
            CIU⟪ Γ ⊢ ω ⟫ τ ε
