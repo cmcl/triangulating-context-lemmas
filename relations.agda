@@ -142,16 +142,6 @@ data _→₁_ : GRel₀^T where
 
   →₁app   : {σ τ : Ty} {M : (σ ⊢ Trm τ) _} {V : _} →
             (βV M V) →₁ (M ⟨ V /var₀⟩)
-{-
-Slight deviation from the paper. The rules below are not defined inductively
-as relation => but instead are shown to be admissible (see big-step-prop.agda)
-
-  →₁letV  : {σ τ : Ty} {N : (σ ⊢ Trm τ) _} {V : _} →
-            (letV V N) →₁ (N ⟨ V /var₀⟩T)
-
-  →₁letT  : {σ τ : Ty} {N : (σ ⊢ Trm τ) _} {M M' : _} →
-            M →₁ M' → (`let M N) →₁ (`let M' N)
--}
 
 -- a fundamental relation transformer: lifting relations on Val to relations
 -- on Trm
