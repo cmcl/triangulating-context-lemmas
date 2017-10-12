@@ -17,6 +17,8 @@ open import Relation.Binary.PropositionalEquality as PEq using (_≡_)
 infixr 20 _`→_
 infixl 10 _∙_
 
+-- Base types and their interpretations, types, and contexts.
+
 data BTy : Set where
   `U : BTy
   `B : BTy
@@ -34,6 +36,8 @@ data Ty : Set where
 data Cx : Set where
   ε    : Cx
   _∙_  : Cx → Ty → Cx
+
+-- Operators which simplify the presentation of the calculus.
 
 infixr 5 _⟶_
 
@@ -68,6 +72,7 @@ infix 5 [_][_,,,_]
 [ P ][ pZ ,,, pS ] ze     = pZ
 [ P ][ pZ ,,, pS ] (su n) = pS n
 
+-- The type of the grammar in lambda-fg.
 PreModel : (ℓ : Level) → Set (L.suc ℓ)
 PreModel ℓ = Ty → Cx → Set ℓ
 
