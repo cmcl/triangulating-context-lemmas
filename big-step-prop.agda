@@ -9,7 +9,6 @@ open import Data.Product hiding (map)
 open import Function as F hiding (_∋_ ; _$_)
 open import Relation.Binary.PropositionalEquality as PEq using (_≡_)
 
-open import lambda-fg
 open import acmm
 open import relations
 
@@ -27,10 +26,6 @@ lemma-2-3i : {τ : Ty} {M N : Trm₀ τ} {V : Val₀ τ} →
 lemma-2-3i (⇓if-tt dev)      →₁if         = dev
 lemma-2-3i (⇓if-ff dev)      →₁if         = dev
 lemma-2-3i (⇓app dev)        →₁app        = dev
-{-
-lemma-2-3i (⇓let (⇓val) dev) →₁letV = dev
-lemma-2-3i (⇓let devM devN) (→₁letT redM) = ⇓let (lemma-2-3i devM redM) devN
--}
 
 →₁letTi : {σ τ : Ty} {N : (σ ⊢ Trm τ) _} {M M' : _} {V : Val₀ _} →
           (der : `let M N ⇓ V) → (red : M →₁ M') → `let M' N ⇓ V
@@ -43,10 +38,6 @@ lemma-2-3ii : {τ : Ty} {M N : Trm₀ τ} {V : Val₀ τ} →
 lemma-2-3ii (→₁if {b = tt}) = ⇓if-tt
 lemma-2-3ii (→₁if {b = ff}) = ⇓if-ff
 lemma-2-3ii →₁app           = ⇓app
-{-
-lemma-2-3ii dev →₁letV          = ⇓let ⇓val dev
-lemma-2-3ii (⇓let devM devN) (→₁letT redM) = ⇓let (lemma-2-3ii devM redM) devN
--}
 
 →₁letTii : {σ τ : Ty} {N : (σ ⊢ Trm τ) _} {M M' : _} {V : Val₀ _} →
            (red : M →₁ M') → (der : `let M' N ⇓ V) → `let M N ⇓ V

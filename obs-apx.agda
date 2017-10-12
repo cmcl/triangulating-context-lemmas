@@ -14,12 +14,14 @@ open import relations
 open import sim-fusion-lemmas
 open import big-step-prop
 
--- Contexts; contextual equivalence; the intricate stuff
+-- Contexts; contextual equivalence
 infixr 20 ⟪-_-⟫
 infixr 20 _⟪_⟫
 infixr 20 _⟪∘⟫_
 infixr 20 _⟪∘_⟫_
 infixr 20 Cxt⟪_⊢_⟫
+
+-- Corresponds to Definition 2.8 (K = VSC).
 
 data Cxt⟪_⊢_⟫ (Γ : Cx) (τ : Ty) : {f : CBV} → PreModel L.zero
 
@@ -39,6 +41,8 @@ data Cxt⟪_⊢_⟫ (Γ : Cx) (τ : Ty) : {f : CBV} → PreModel L.zero
   _`$_ : admits-$   λ {f} → Cxt⟪ Γ ⊢ τ ⟫ {f}
   `if  : admits-if  λ {f} → Cxt⟪ Γ ⊢ τ ⟫ {f}
   `let : admits-let λ {f} → Cxt⟪ Γ ⊢ τ ⟫ {f}
+
+-- Context instantiation
 
 _⟪_⟫ : ∀ {f} {Γ Δ} {σ τ}
        (P : Cxt⟪ Γ ⊢ σ ⟫ {f} τ Δ) (T : Trm σ Γ) → Exp {f} τ Δ
@@ -76,7 +80,7 @@ _substC⟪_⟫_ : ∀ {f} {τ υ} {Γ Δ Ξ}
  substC C ρ ⟪ T ⟫ ≡ subst (C ⟪ T ⟫) ρ
 
 `exp E       substC⟪ T ⟫ ρ = PEq.refl
-`λ M         substC⟪ T ⟫ ρ -- = PEq.cong `λ (M substC⟪ T ⟫ (ext₀^Env ρ))
+`λ M         substC⟪ T ⟫ ρ
  rewrite M substC⟪ T ⟫ (ext₀^Env ρ)
                            = PEq.refl
 
@@ -142,6 +146,8 @@ sim₀ : GRel₀^E
 sim₀ {`val} = sim₀^V
 sim₀ {`trm} = sim₀^T
 
+-- Properties of ground simulation
+
 sim₀^B-refl-inv : {b b' : ⟦ `B ⟧B} → sim₀ (`b b) (`b b') → b ≡ b'
 sim₀^B-refl-inv (sim₀^V-b (sim₀^B-b b)) = PEq.refl
 
@@ -189,7 +195,7 @@ sim₀^T-let : ∀ {σ τ} {M N P Q} → sim₀^T {σ} M P →
  sim₀^T {τ} (`let M N) (`let P Q)
 sim₀^T-let = lemma-[-]^T-let {R = sim₀^V}
 
--- the *most* important lemma: at higher type, if P terminates, then so does Q
+-- an important lemma: at higher type, if P terminates, then so does Q
 -- so it suffices to consider relations at higher-type on *values*
 lemma-[-]^T-sim₀-λ : {ℓ^V : Level} {R : {τ : Ty} → GRel^V {ℓ^V} {τ}} →
  ∀ {σ τ} {P Q} → (∀ {M N} → P ⇓ `λ M → Q ⇓ `λ N → R (`λ M) (`λ N)) →
@@ -210,7 +216,7 @@ sim {f} = case f return (λ f → ∀ {Γ} {υ} → Rel^E {f} {_} {Γ} {υ})
   simT {Γ} {τ} = _[ sim₀^T {τ} ]^O_
 
 -- Contextual simulation/Observational approximation
--- The fundamental relations, quantifying over all program contexts.
+-- The fundamental relations, quantifying over all VSC program contexts.
 
 cxt-sim : ∀ {f} {Γ} {υ} → Rel^E {f} {L.zero} {Γ} {υ}
 cxt-sim {f} = case f return (λ f → ∀ {Γ} {υ} → Rel^E {f} {_} {Γ} {υ})
