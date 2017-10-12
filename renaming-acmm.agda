@@ -1,10 +1,13 @@
+{----------------------------------------------------}
+{-- Renaming is a syntactic instance of Semantics. --}
+{----------------------------------------------------}
 module renaming-acmm where
 
 open import Function as F hiding (_∋_ ; _$_)
 open import Relation.Binary.PropositionalEquality as PEq using (_≡_)
 
 open import lambda-fg
-open import semantics
+open import semantics-acmm
 
 Renaming : Semantics Var→Val Val→Trm
 Renaming = syntactic 𝓥ar₀
@@ -40,10 +43,10 @@ appT M V = `let M (Val→Spine V)
 -- Proofs about renaming
 
 ext₀^Var-ext₀ : ∀ {Γ} {σ} → {ρ : Γ ⊆ Γ} → (∀ {τ} v → var ρ {τ} v ≡ v) →
- ∀ {τ} v → var (pop! {σ} {Γ} ρ) {τ} v ≡ v
+ ∀ {τ} v → var (ext₀^Var {σ} {Γ} ρ) {τ} v ≡ v
 ext₀^Var-ext₀ {Γ} {σ} {ρ} eq =
   [ P ][ PEq.refl ,,,  PEq.cong su ∘ eq ]
- where P = λ {τ} v → var (pop! {σ} {Γ} ρ) {τ} v ≡ v
+ where P = λ {τ} v → var (ext₀^Var {σ} {Γ} ρ) {τ} v ≡ v
 
 ι^Var-lemma-aux : {Γ : Cx} {σ : Ty} {ρ : Γ ⊆ Γ}
              (prf : {τ : Ty} (v : Var τ Γ) → var ρ {τ} v ≡ v) →

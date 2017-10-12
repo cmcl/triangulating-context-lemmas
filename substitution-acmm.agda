@@ -1,10 +1,13 @@
+{--------------------------------------------------------}
+{-- Substitution is a syntactic instance of Semantics. --}
+{--------------------------------------------------------}
 module substitution-acmm where
 
 open import Function as F hiding (_∋_ ; _$_)
 open import Relation.Binary.PropositionalEquality as PEq using (_≡_)
 
 open import lambda-fg
-open import semantics
+open import semantics-acmm
 open import renaming-acmm
 
 -- Value substitution

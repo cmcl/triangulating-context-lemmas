@@ -1,4 +1,8 @@
-module semantics where
+{------------------------------------------------}
+{-- Generic traversal framework for lambda-fg. --}
+{--                See Allais et al. CPP 2017. --}
+{------------------------------------------------}
+module semantics-acmm where
 
 open import Level as L using (Level ; _⊔_)
 
@@ -62,10 +66,13 @@ syntactic : {ℓ^V : Level} {𝓥 : PreModel ℓ^V} {Θ : Model 𝓥}
  (mod : Model₀ Θ) {VAR : Morphism Θ Val} →
  Semantics {Θ = Θ} {𝓔 = λ {f} → Exp {f}} VAR Val→Trm -- the Trm part gets to
                                                      -- tag along `for free'
-syntactic mod {VAR} = record
-  { ⟦λ⟧  = λ t → `λ (t weak var₀)
+syntactic {𝓥 = 𝓥} mod {VAR} = record
+  { ⟦λ⟧  = λ t → `λ (reify t)
   ; ⟦b⟧ = `b
   ; _⟦$⟧_ = _`$_
   ; ⟦if⟧  = `if
-  ; ⟦let⟧  = λ M N → `let M (N weak var₀)
-  } where open Model₀ mod
+  ; ⟦let⟧  = λ M N → `let M (reify N)
+  } where 
+      open Model₀ mod
+      reify : ∀ {σ} {τ} → [ □ (𝓥 σ ⟶ Trm τ) ⟶ (σ ⊢ Trm τ) ]
+      reify E = E weak var₀
