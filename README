@@ -1,7 +1,7 @@
 Triangulating Context Lemmas
 =============================
 
-Agda formalisation to accompanying paper ``Triangulating Context Lemmas" by
+Agda formalisation to accompany the paper ``Triangulating Context Lemmas" by
 Craig McLaughlin, James McKinna and Ian Stark.
 
 Dependencies:
