@@ -3,16 +3,10 @@
 module lambda-fg where
 
 open import Level as L using (Level ; _⊔_)
-open import Data.Empty
-open import Data.Unit renaming (tt to ⟨⟩)
-open import Data.Bool renaming (true to tt ; false to ff)
-open import Data.Sum hiding (map ; [_,_])
-open import Data.Product hiding (map)
 open import Function as F hiding (_∋_ ; _$_)
-
-open import Data.Nat as ℕ using (ℕ ; _+_)
-
 open import Relation.Binary.PropositionalEquality as PEq using (_≡_)
+
+open import tri-prelude
 
 infixr 20 _`→_
 infixl 10 _∙_
@@ -25,9 +19,9 @@ data BTy : Set where
   `N : BTy
 
 ⟦_⟧B : BTy → Set
-⟦ `U ⟧B = ⊤
+⟦ `U ⟧B = Unit
 ⟦ `B ⟧B = Bool
-⟦ `N ⟧B = ℕ
+⟦ `N ⟧B = Nat
 
 data Ty : Set where
   `b   : (β : BTy) → Ty

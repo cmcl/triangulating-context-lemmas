@@ -3,6 +3,7 @@
 {----------------------------------------------}
 module acmm where
 
+open import tri-prelude public
 open import lambda-fg public
 open import semantics-acmm public
 open import renaming-acmm public

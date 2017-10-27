@@ -3,14 +3,9 @@
 {--------------------------------}
 module tri-frm-stk where
 
-open import Data.Bool renaming (true to tt ; false to ff)
-open import Data.Product hiding (map)
-open import Function as F hiding (_∋_ ; _$_)
 open import Level as L using (Level ; _⊔_)
+open import Function as F hiding (_∋_ ; _$_)
 
-open import Relation.Binary.PropositionalEquality as PEq using (_≡_)
-
-open import lambda-fg
 open import acmm
 open import sim-fusion-lemmas
 open import relations
@@ -31,7 +26,8 @@ lemma-[ r ]^F-refl S M {U = U} der = U , der , r U
 mutual
 
   app-frm-apx₀ : GRel₀^E
-  app-frm-apx₀ = λ { {`val} → app-frm-apx₀^V ; {`trm} → app-frm-apx₀^T }
+  app-frm-apx₀ {`val} = app-frm-apx₀^V
+  app-frm-apx₀ {`trm} = app-frm-apx₀^T
 
   data app-frm-apx₀^B : GRel₀^B where
     app-frm-apx₀^B-b : ∀ {β} {b b'} →
@@ -102,7 +98,8 @@ frm-apx₀ {σ} {τ} S^U S^V = ∀ {U V} → log-frm-apx₀^V {τ} U V →
   S^U , `val U [ gnd-eqv₀ ]^F S^V , `val V
 
 log-frm-apx₀ : GRel₀^E
-log-frm-apx₀ = λ { {`val} → log-frm-apx₀^V ; {`trm} → log-frm-apx₀^T }
+log-frm-apx₀ {`val} = log-frm-apx₀^V
+log-frm-apx₀ {`trm} = log-frm-apx₀^T
 
 log-frm-apx₀^V {`b β} (`var ())
 log-frm-apx₀^V {`b β} (`b b) (`var ())
@@ -261,7 +258,7 @@ log-frm-apx-refl (`λ M) {ρM} {ρM'} apxρ {U} {V} sUV
   with log-frm-apx-refl M {ρM `∙ U} {ρM' `∙ V} (log-frm-apx₀^Ext apxρ sUV)
 ... | prf rewrite lemma34 M ρM U | lemma34 M ρM' V = prf
 log-frm-apx-refl (`val V) {ρS} {ρT} apxρ with log-frm-apx-refl V apxρ
-... | sVV = λ {σ} {S} {T} sST evSV → sST sVV evSV
+... | sVV = λ sST evSV → sST sVV evSV
 log-frm-apx-refl (f `$ a) apxρ = log-frm-apx₀^T-app F A
   where F = log-frm-apx-refl f apxρ
         A = log-frm-apx-refl a apxρ
@@ -352,7 +349,8 @@ lemma-4-15O {Γ} {τ} {M} {N} sMN P
 ... | prf = log-frm-apx-gnd-eqv₀ {`trm} sPMN
  where
   sPMN : log-frm-apx₀^T (P ⟪ M ⟫) (P ⟪ N ⟫)
-  sPMN rewrite PEq.sym (ι^Env₀ (P ⟪ M ⟫)) | PEq.sym (ι^Env₀ (P ⟪ N ⟫)) = prf
+  sPMN rewrite ι^Env₀-lemma (mkEnv (λ {σ} → `var)) (P ⟪ M ⟫) |
+               ι^Env₀-lemma (mkEnv (λ {σ} → `var)) (P ⟪ N ⟫) = prf
 
 log-frm-apx₀-lift : ∀ {σ} {V W} → log-frm-apx₀^V {σ} V W →
                     log-frm-apx₀ (`val V) (`val W)

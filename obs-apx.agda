@@ -4,11 +4,9 @@
 module obs-apx where
 
 open import Level as L using (Level ; _⊔_)
-open import Data.Product hiding (map)
 open import Function as F hiding (_∋_ ; _$_)
 open import Relation.Binary.PropositionalEquality as PEq using (_≡_)
 
-open import lambda-fg
 open import acmm
 open import relations
 open import sim-fusion-lemmas

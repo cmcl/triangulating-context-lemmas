@@ -4,13 +4,9 @@
 module tri-big-step where
 
 open import Level as L using (Level ; _⊔_)
-open import Data.Bool renaming (true to tt ; false to ff)
-open import Data.Product hiding (map)
 open import Function as F hiding (_∋_ ; _$_)
-
 open import Relation.Binary.PropositionalEquality as PEq using (_≡_)
 
-open import lambda-fg
 open import acmm
 open import relations
 open import big-step-prop
@@ -27,7 +23,8 @@ open import sim-fusion-lemmas
 mutual
 
  app-apx₀ : GRel₀^E
- app-apx₀ = λ { {`val} → app-apx₀^V ; {`trm} → app-apx₀^T }
+ app-apx₀ {`val} = app-apx₀^V
+ app-apx₀ {`trm} = app-apx₀^T
 
  data
   app-apx₀^B : GRel₀^B where
@@ -288,8 +285,8 @@ lemma-3-20 {f} = case f return Lemma-3-20 of
   prfV  {`b β}  {`b .b} (app-apx₀^V-b (app-apx₀^B-b (gnd-eqv₀^B-b b))) r = r
 
   prfV {σ `→ τ} {`λ M} {`λ N} {`var ()} (app-apx₀^V-λ l) r
-  prfV {σ `→ τ} {`λ M} {`λ N}  {`λ P}   (app-apx₀^V-λ l) r
-   = λ {V} sMN → prfT (l V) (r sMN)
+  prfV {σ `→ τ} {`λ M} {`λ N}  {`λ P}   (app-apx₀^V-λ l) r {V}
+   = λ sMN → prfT (l V) (r sMN)
 
   prfT {τ} = lemma-[ prfV {τ} ]^T-trans
 
@@ -347,7 +344,8 @@ lemma-3-23O {Γ} {τ} {M} {N} sMN P
 ... | prf = log-apx-gnd-eqv₀ {`trm} sPMN
  where
   sPMN : log-apx₀^T (P ⟪ M ⟫) (P ⟪ N ⟫)
-  sPMN rewrite PEq.sym (ι^Env₀ (P ⟪ M ⟫)) | PEq.sym (ι^Env₀ (P ⟪ N ⟫)) = prf
+  sPMN rewrite ι^Env₀-lemma (mkEnv (λ {σ} → `var)) (P ⟪ M ⟫) |
+               ι^Env₀-lemma (mkEnv (λ {σ} → `var)) (P ⟪ N ⟫) = prf
 
 Lemma-3-23 : (f : CBV) → Set
 Lemma-3-23 f = ∀ {τ} {M N} → log-apx₀ M N → vsc-apx₀ {f} {τ} M N
