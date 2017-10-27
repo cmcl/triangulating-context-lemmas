@@ -4,7 +4,6 @@
 module frm-stk-prop where
 
 open import Function as F hiding (_∋_ ; _$_)
-open import Relation.Binary.PropositionalEquality as PEq using (_≡_)
 
 open import acmm
 open import relations

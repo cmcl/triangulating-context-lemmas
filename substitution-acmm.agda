@@ -4,8 +4,8 @@
 module substitution-acmm where
 
 open import Function as F hiding (_∋_ ; _$_)
-open import Relation.Binary.PropositionalEquality as PEq using (_≡_)
 
+open import tri-prelude
 open import lambda-fg
 open import semantics-acmm
 open import renaming-acmm

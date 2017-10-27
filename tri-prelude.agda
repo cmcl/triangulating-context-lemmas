@@ -46,3 +46,23 @@ uncurry : ∀ {s t u} {S : Set s} {T : S → Set t} {U : Sg S T → Set u} →
             (f : (x : S) → (y : T x) → U (x , y)) →
             (p : Sg S T) → U p
 uncurry f (x , y) = f x y
+
+-- Properites using propositional equality
+
+module PEq {a} {A : Set a} where
+  open import Agda.Builtin.Equality public
+
+  cong : ∀ {b} {B : Set b} (f : A → B) {x y} → x ≡ y → f x ≡ f y
+  cong f refl = refl
+
+  cong₂ : ∀ {b c} {B : Set b} {C : Set c} (f : A → B → C) {x y u v} →
+          x ≡ y → u ≡ v → f x u ≡ f y v
+  cong₂ f refl refl = refl
+
+  sym : ∀ {x y : A} → x ≡ y → y ≡ x
+  sym refl = refl
+
+  trans : ∀ {x y z : A} → x ≡ y → y ≡ z → x ≡ z
+  trans refl refl = refl
+
+open PEq using (_≡_) public

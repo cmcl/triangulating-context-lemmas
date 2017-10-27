@@ -5,7 +5,6 @@ module obs-apx where
 
 open import Level as L using (Level ; _⊔_)
 open import Function as F hiding (_∋_ ; _$_)
-open import Relation.Binary.PropositionalEquality as PEq using (_≡_)
 
 open import acmm
 open import relations
