@@ -5,7 +5,7 @@ Agda formalisation to accompany the paper ``Triangulating Context Lemmas" by
 Craig McLaughlin, James McKinna and Ian Stark.
 
 Dependencies:
-  * Agda version 2.5.1
+  * Agda version 2.5.1 or 2.5.2
   * Agda standard library v0.12
 
 The main results are summarised in triangulating-context-lemmas.agda.
