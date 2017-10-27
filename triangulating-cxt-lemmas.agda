@@ -2,18 +2,12 @@ module triangulating-cxt-lemmas where
 
 open import Function as F hiding (_∋_ ; _$_)
 
--- Import the calculus
 open import lambda-fg
--- ACCM defines the generic evaluations and substitution traversals
-open import acmm
-open import relations
-open import big-step-prop
 open import obs-apx
 open import vcc-apx
 open import asc-apx
 open import tri-big-step
 open import ciu-apx
-open import frm-stk-prop
 open import tri-frm-stk
 
 {--------------------------------}
