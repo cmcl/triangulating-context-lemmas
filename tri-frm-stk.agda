@@ -302,7 +302,9 @@ log-frm-apx₀-refl {f} = case f return Log-frm-apx₀-refl of
     prfS (S ∙ N) rUV (↓red () derU)
     prfS (S ∙ N) {U = U} rUV (↓letV derU) with prfS S
     ... | iH with (prfT (N ⟨ U /var₀⟩)) iH derU
-    ... | W^V , derV , rW^UW^V = W^V , ↓letV derV , rW^UW^V
+    ... | W^V , derV , rW^UW^V with prfV (`λ N) rUV (prfS S) derV
+    ... | W , derW , rW^VW =
+      W , ↓letV derW , gnd-eqv₀-trans {`val} rW^UW^V rW^VW
 
 lemma-4-14 : ∀ {f} {Γ Δ} {τ υ} (P : VSC⟪ Γ ⊢ τ ⟫ {f} υ Δ) →
  ∀ {M N} → log-frm-apx M N → log-frm-apx (P ⟪ M ⟫) (P ⟪ N ⟫)

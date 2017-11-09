@@ -36,9 +36,17 @@ ren₀-zero ρ = Ren₀ *-Var zero ρ
 zero* : ∀ {Γ} {σ τ} → Env₀ (Γ ∙ τ) → Trm σ (Γ ∙ τ) → Trm σ Γ 
 zero* ρ M =  M ⟨ ren₀-zero ρ /var₀⟩ 
 
+succ-ren₀-zero : ∀ {Γ} {τ} (ρ : Env₀ (Γ ∙ τ)) →
+                 ((succ ρ) *-Val (ren₀-zero ρ)) ≡ zero ρ
+succ-ren₀-zero ρ = ι^Var^Env-lemma-aux (zero ρ) Ren₀ (succ ρ) (λ ())
+
 subst-succ : ∀ {Γ} {σ τ} → (ρ : Env₀ (Γ ∙ τ)) → (M : Trm σ (Γ ∙ τ)) →
   subst (zero* ρ M) (succ ρ) ≡ subst M (succ ρ `∙ zero ρ)
-subst-succ ρ M = PEq.sym (lemma33 (succ ρ) (ι^Env  `∙ (ren₀-zero ρ)) M)
+subst-succ ρ M
+  rewrite sub-sub (succ ρ) (ι^Env  `∙ (ren₀-zero ρ)) M =
+    subst-ext M [ P ][ succ-ren₀-zero ρ ,,, (λ v → PEq.refl) ]
+  where P = λ {τ} v → var (succ ρ *-Sub (ι^Env `∙ (ren₀-zero ρ))) v ≡
+                      var (succ ρ `∙ zero ρ) {τ} v
 
 -- iterated sequential substitution 'subst₀'
 
@@ -120,7 +128,7 @@ lemma-2-10ii-$ r red der with r der
 βV-subst₀ {Γ ∙ τ} ρ M with βV-subst₀ (succ ρ) (βV M (ren₀-zero ρ))
 ... | ih rewrite PEq.sym (subst-equiv ρ M) with →βV-step ih
 ... | prf rewrite subst-equiv (succ ρ) (zero* ρ M) | subst-succ ρ M |
-                  lemma34 M (succ ρ) (zero ρ) = prf
+                  lemma34 M (succ ρ) (zero ρ) = {!!}
 
 -- VCC contexts; no additional renaming/substitution in holes
 

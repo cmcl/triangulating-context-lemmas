@@ -8,6 +8,7 @@ open import Function as F hiding (_∋_ ; _$_)
 
 open import acmm
 open import relations
+open import sim-fusion-lemmas
 
 lemma-2-1 : {τ : Ty} {M : Trm₀ τ} {U V : Val₀ τ} → M ⇓ U → M ⇓ V → U ≡ V
 lemma-2-1 ⇓val ⇓val = PEq.refl
@@ -87,10 +88,13 @@ lemma-[-]^T-βV : {ℓ^V : Level} {τ : Ty} {R : GRel^V {ℓ^V} {τ}} →
  ∀ {σ} {P Q : Trm₀ (σ `→ τ)} {M N} {V W} →
  P ⇓ `λ M → appT P V [ R ]^T appT Q W → Q ⇓ `λ N →
  (βV M V) [ R ]^T (βV N W)
-lemma-[-]^T-βV derM r derN (⇓app derV)
- with r (⇓let derM (⇓app derV))
-... | U , ⇓let derQ (⇓app derU) , simU
- rewrite `λ-inj (lemma-2-1 derN derQ) = U , ⇓app derU , simU
+lemma-[-]^T-βV {M = M} {V = V} {W = W} derM r derN {U} (⇓app derV)
+  with r (⇓let derM (⇓app derV'))
+  where derV' : (M ⟨ (weak *-Var V) ⟨ `λ M /var₀⟩ /var₀⟩) ⇓ U
+        derV' rewrite weak-sub (`λ M) V = derV
+... | _ , ⇓let derQ (⇓app {M = Q} derU) , simU
+  rewrite weak-sub (`λ Q) W | `λ-inj (lemma-2-1 derN derQ) =
+  _ , ⇓app derU , simU
 
 -- congruence rules
 
