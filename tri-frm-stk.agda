@@ -289,8 +289,11 @@ log-frm-apx₀-refl {f} = case f return Log-frm-apx₀-refl of
     prfV {`b β} (`var ())
     prfV {`b β} (`b b) = gnd-eqv₀^B-b b
     prfV {σ `→ τ} (`var ())
-    prfV {σ `→ τ} (`λ M) sUV =
-      log-frm-apx-refl M (Val₀→Env₀ {𝓔^R = log-frm-apx₀^V} sUV)
+    prfV {σ `→ τ} (`λ M) sUV = log-frm-apx-refl M (_∙₀^R_ {𝓔^R = E^R} rel sUV)
+      where
+        E^R = λ {τ} → log-frm-apx₀^V {τ} 
+        rel : ι^Env [ E^R ]^Env ι^Env
+        rel ()
 
     prfT {τ} M sS^MS^N evalSM with ↓standard evalSM
     ... | U , evalIdM , evalS^MU with sS^MS^N (prfV U) evalS^MU
@@ -352,7 +355,9 @@ lemma-4-15O {Γ} {τ} {M} {N} sMN P
  where
   sPMN : log-frm-apx₀^T (P ⟪ M ⟫) (P ⟪ N ⟫)
   sPMN rewrite ι^Env₀-lemma (mkEnv (λ {σ} → `var)) (P ⟪ M ⟫) |
-               ι^Env₀-lemma (mkEnv (λ {σ} → `var)) (P ⟪ N ⟫) = prf
+               PEq.sym (ι^Env₀ (P ⟪ M ⟫)) |
+               ι^Env₀-lemma (mkEnv (λ {σ} → `var)) (P ⟪ N ⟫) |
+               PEq.sym (ι^Env₀ (P ⟪ N ⟫)) = prf
 
 log-frm-apx₀-lift : ∀ {σ} {V W} → log-frm-apx₀^V {σ} V W →
                     log-frm-apx₀ (`val V) (`val W)

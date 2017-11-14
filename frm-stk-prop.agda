@@ -98,7 +98,8 @@ lemmaF {S = S ∙ N} (↓letV {V = V} der)
  with ⇓letF-lemma S
 ... | prfL , prfR
  with prfL {M = letV V N} (⇓letF-val {S = S} (lemmaF der))
-... | _ , ⇓let _ derN , derU  = prfR (⇓let ⇓val derN) derU
+... | _ , ⇓let (⇓val {V = _}) derN , derU  = prfR (⇓let ⇓val derN) derU
+--  prfR (⇓let (⇓val {V = V}) derN) derU
 lemmaF (↓letT der)             = lemmaF der
 
 ↓standard : ∀ {τ υ} {S : Frm υ τ} {M} {U} → S , M ↓ U →

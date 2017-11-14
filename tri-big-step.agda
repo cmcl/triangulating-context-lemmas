@@ -264,7 +264,11 @@ log-apx₀-refl {f} = case f return Log-apx₀-refl of
   prfV {`b β}  (`b b) = log-apx^B-refl {β} b
 
   prfV {σ `→ τ} (`var ())
-  prfV {σ `→ τ}  (`λ M) sVW = lemma-3-19 M (Val₀→Env₀ {𝓔^R = log-apx₀^V} sVW)
+  prfV {σ `→ τ}  (`λ M) sVW = lemma-3-19 M (_∙₀^R_ {𝓔^R = E^R} rel sVW)
+    where
+      E^R = λ {τ} → log-apx₀^V {τ} 
+      rel : ι^Env [ E^R ]^Env ι^Env
+      rel ()
 
   prfT {τ} = lemma-[ prfV {τ} ]^T-refl
 
@@ -343,8 +347,12 @@ lemma-3-23O {Γ} {τ} {M} {N} sMN P
 ... | prf = log-apx-gnd-eqv₀ {`trm} sPMN
  where
   sPMN : log-apx₀^T (P ⟪ M ⟫) (P ⟪ N ⟫)
+  -- NB: The order of rewrites here makes a difference: ι^Env₀ *after*
+  -- ι^Env₀-lemma!
   sPMN rewrite ι^Env₀-lemma (mkEnv (λ {σ} → `var)) (P ⟪ M ⟫) |
-               ι^Env₀-lemma (mkEnv (λ {σ} → `var)) (P ⟪ N ⟫) = prf
+               PEq.sym (ι^Env₀ (P ⟪ M ⟫)) |
+               ι^Env₀-lemma (mkEnv (λ {σ} → `var)) (P ⟪ N ⟫) |
+               PEq.sym (ι^Env₀ (P ⟪ N ⟫)) = prf
 
 Lemma-3-23 : (f : CBV) → Set
 Lemma-3-23 f = ∀ {τ} {M N} → log-apx₀ M N → vsc-apx₀ {f} {τ} M N
