@@ -89,9 +89,8 @@ lemma-[-]^T-βV : {ℓ^V : Level} {τ : Ty} {R : GRel^V {ℓ^V} {τ}} →
  P ⇓ `λ M → appT P V [ R ]^T appT Q W → Q ⇓ `λ N →
  (βV M V) [ R ]^T (βV N W)
 lemma-[-]^T-βV {M = M} {V = V} {W = W} derM r derN {U} (⇓app derV)
-  with r (⇓let derM (⇓app derV'))
-  where derV' : (M ⟨ (weak *-Var V) ⟨ `λ M /var₀⟩ /var₀⟩) ⇓ U
-        derV' rewrite weak-sub (`λ M) V = derV
+   with (λ der → r {U} (⇓let derM (⇓app der)))
+... | hyp rewrite weak-sub (`λ M) V with hyp derV
 ... | _ , ⇓let derQ (⇓app {M = Q} derU) , simU
   rewrite weak-sub (`λ Q) W | `λ-inj (lemma-2-1 derN derQ) =
   _ , ⇓app derU , simU
