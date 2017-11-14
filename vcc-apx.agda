@@ -129,7 +129,7 @@ lemma-2-10ii-$ r red der with r der
 βV-subst₀   {ε}   ρ M rewrite ι^Env₀-lemma ρ M = →βV-refl
 βV-subst₀ {Γ ∙ τ} ρ M with βV-subst₀ (succ ρ) (βV M (ren₀-zero ρ))
 ... | ih rewrite PEq.sym (subst-equiv ρ M) | succ-ren₀-zero ρ |
-                 subst-equiv (succ ρ) (subst M (sub₀-zero ρ)) |
+                 subst-equiv (succ ρ) (zero* ρ M) |
                  subst-succ ρ M
          with →βV-step ih
 ... | prf rewrite PEq.sym (lemma34 M (succ ρ) (zero ρ)) = prf
