@@ -104,7 +104,7 @@ ciu-to-vcc (P `⋉ M) = `let (ciu-to-vcc P) (`exp M)
 
 →$-ciu-vcc⟪_⟫ : ∀ {Γ} {σ τ} → (T : Trm σ Γ) → (P : CIU⟪ Γ ⊢ σ ⟫ τ ε) →
   ((ciu-to-vcc P) ⟪ T ⟫VCC) →$ (P ⟪ T ⟫CIU)
-→$-ciu-vcc⟪ T ⟫ ⟪- ρ -⟫ rewrite VCC-sub-βV ρ ⟪-⟫ T = →βV-$ (βV-subst₀ ρ T)
+→$-ciu-vcc⟪ T ⟫ ⟪- ρ -⟫ rewrite VCC-sub-$ ρ ⟪-⟫ T = $-subst₀ ρ T
 →$-ciu-vcc⟪ T ⟫ (P `⋉ M) = →MN-$ (→$-ciu-vcc⟪ T ⟫ P)
 
 vcc-apx→ciu-apx^T : ∀ {Γ} {τ} {M N} →

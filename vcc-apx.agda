@@ -65,50 +65,28 @@ subst-equiv {Γ ∙ τ} ρ M rewrite subst-equiv (succ ρ) (zero* ρ M) |
                                 subst-succ ρ M
     = subst-ext M (cons-rho ρ)
 
--- iterated βV reduction
-
-data _→βV_ : GRel₀^T where
-  →βV-refl : {σ : Ty} {M : Trm₀ σ} → M →βV M
-  →βV-step : {σ τ : Ty} {M : Trm₀ τ} {N : (σ ⊢ Trm τ) _} {V : _} →
-    M →βV (βV N V) → M →βV (N ⟨ V /var₀⟩)
-
-lemma-2-3i-βV : {τ : Ty} {M N : Trm₀ τ} {V : Val₀ τ} →
-                (dev : M ⇓ V) → (red : M →βV N) → N ⇓ V
-lemma-2-3i-βV dev →βV-refl = dev
-lemma-2-3i-βV dev (→βV-step red) with lemma-2-3i-βV dev red
-lemma-2-3i-βV dev (→βV-step red) | ⇓app der = der
-
-lemma-2-3ii-βV : {τ : Ty} {M N : Trm₀ τ} {V : Val₀ τ} →
-                 (red : M →βV N) → (dev : N ⇓ V) → M ⇓ V
-lemma-2-3ii-βV →βV-refl dev = dev
-lemma-2-3ii-βV (→βV-step red) dev = lemma-2-3ii-βV red (⇓app dev)
-
-lemma-2-10i-βV : {ℓ^V : Level} {τ : Ty} {R : GRel^V {ℓ^V} {τ}}
-  {M N P : Trm₀ τ} → M →βV P → (M [ R ]^T N) → P [ R ]^T N
-lemma-2-10i-βV red r = r ∘ (lemma-2-3ii-βV red)
-
-lemma-2-10ii-βV : {ℓ^V : Level} {τ : Ty} {R : GRel^V {ℓ^V} {τ}}
-  {M N P : Trm₀ τ} → (M [ R ]^T N) → N →βV P → M [ R ]^T P
-lemma-2-10ii-βV r red der with r der
-... | V , derM , rUV = V , lemma-2-3i-βV derM red , rUV
-
--- Reduction under application (term application simulated with let).
+-- iterated let reduction
 data _→$_ : GRel₀^T where
- →βV-$ : {σ : Ty} {M N : Trm₀ σ} → M →βV N → M →$ N
+ →$-refl : {σ : Ty} {M : Trm₀ σ} → M →$ M
+ →$-step : {σ τ : Ty} {M : Trm₀ τ} {N : (σ ⊢ Trm τ) _} {V : _} →
+   M →$ (letV V N) → M →$ (N ⟨ V /var₀⟩)
  →MN-$ : {σ τ : Ty} {M M' : Trm₀ σ} {N : (σ ⊢ Trm τ) _} →
    M →$ M' → `let M N →$ `let M' N
 
 lemma-2-3i-$ : {τ : Ty} {M N : Trm₀ τ} {V : Val₀ τ} →
                 (dev : M ⇓ V) → (red : M →$ N) → N ⇓ V
-lemma-2-3i-$ dev (→βV-$ βV) = lemma-2-3i-βV dev βV
-lemma-2-3i-$ (⇓let derM derN) (→MN-$ red) with lemma-2-3i-$ derM red
-... | iH = ⇓let iH derN
+lemma-2-3i-$ dev →$-refl = dev
+lemma-2-3i-$ dev (→$-step red) with lemma-2-3i-$ dev red
+... | ⇓let ⇓val devN = devN
+lemma-2-3i-$ (⇓let devM devN) (→MN-$ red) with lemma-2-3i-$ devM red
+... | devM' = ⇓let devM' devN
 
 lemma-2-3ii-$ : {τ : Ty} {M N : Trm₀ τ} {V : Val₀ τ} →
                  (red : M →$ N) → (dev : N ⇓ V) → M ⇓ V
-lemma-2-3ii-$ (→βV-$ βV) dev = lemma-2-3ii-βV βV dev
-lemma-2-3ii-$ (→MN-$ red) (⇓let derM derN) =
-  ⇓let (lemma-2-3ii-$ red derM) derN
+lemma-2-3ii-$ →$-refl dev = dev
+lemma-2-3ii-$ (→$-step red) dev = lemma-2-3ii-$ red (⇓let ⇓val dev)
+lemma-2-3ii-$ (→MN-$ red) (⇓let devM' devN) =
+  ⇓let (lemma-2-3ii-$ red devM') devN
 
 lemma-2-10i-$ : {ℓ^V : Level} {τ : Ty} {R : GRel^V {ℓ^V} {τ}}
   {M N P : Trm₀ τ} → M →$ P → (M [ R ]^T N) → P [ R ]^T N
@@ -119,19 +97,19 @@ lemma-2-10ii-$ : {ℓ^V : Level} {τ : Ty} {R : GRel^V {ℓ^V} {τ}}
 lemma-2-10ii-$ r red der with r der
 ... | V , derM , rUV = V , lemma-2-3i-$ derM red , rUV
 
--- iterated βV redex construction
+-- iterated letV redex construction
 
-βVΓ : ∀ {Γ} {σ} → (ρ : Env₀ Γ) → (M : Trm σ Γ) → Trm₀ σ
-βVΓ   {ε}   ρ M = M
-βVΓ {Γ ∙ τ} ρ M = βVΓ (succ ρ) (βV M (ren₀-zero ρ))
+letVΓ : ∀ {Γ} {σ} → (ρ : Env₀ Γ) → (M : Trm σ Γ) → Trm₀ σ
+letVΓ   {ε}   ρ M = M
+letVΓ {Γ ∙ τ} ρ M = letVΓ (succ ρ) (letV (ren₀-zero ρ) M)
 
-βV-subst₀ : ∀ {Γ} {σ} → (ρ : Env₀ Γ) → (M : Trm σ Γ) → βVΓ ρ M →βV subst M ρ
-βV-subst₀   {ε}   ρ M rewrite ι^Env₀-lemma ρ M = →βV-refl
-βV-subst₀ {Γ ∙ τ} ρ M with βV-subst₀ (succ ρ) (βV M (ren₀-zero ρ))
+$-subst₀ : ∀ {Γ} {σ} → (ρ : Env₀ Γ) → (M : Trm σ Γ) → letVΓ ρ M →$ subst M ρ
+$-subst₀   {ε}   ρ M rewrite ι^Env₀-lemma ρ M = →$-refl
+$-subst₀ {Γ ∙ τ} ρ M with $-subst₀ (succ ρ) (letV (ren₀-zero ρ) M)
 ... | ih rewrite PEq.sym (subst-equiv ρ M) | succ-ren₀-zero ρ |
                  subst-equiv (succ ρ) (zero* ρ M) |
                  subst-succ ρ M
-         with →βV-step ih
+         with →$-step ih
 ... | prf rewrite PEq.sym (lemma34 M (succ ρ) (zero ρ)) = prf
 
 -- VCC contexts; no additional renaming/substitution in holes
@@ -172,22 +150,22 @@ _⟪_⟫VCC : ∀ {f} {Γ Δ} {σ τ}
 `if B L R ⟪ T ⟫VCC = `if  (B ⟪ T ⟫VCC) (L ⟪ T ⟫VCC) (R ⟪ T ⟫VCC)
 `let M N  ⟪ T ⟫VCC = `let (M ⟪ T ⟫VCC) (N ⟪ T ⟫VCC)
 
--- action of substitution by iterated βV redex construction 
+-- action of substitution by iterated letV redex construction 
 
 VCC-sub : ∀ {Γ Δ} {σ τ} → Env₀ Δ → VCC⟪ Γ ⊢ σ ⟫ {`trm} τ Δ →
   VCC⟪ Γ ⊢ σ ⟫ {`trm} τ ε
 VCC-sub {Δ = ε} ρ C = C
 VCC-sub {Δ = Δ ∙ ω} ρ C =
-  VCC-sub (succ ρ) (`λ C `$ (`exp (ren₀-zero ρ))) 
+  VCC-sub (succ ρ) (`let (`exp (`val (ren₀-zero ρ))) C)
 
 -- commutes with instantiation 
 
-VCC-sub-βV : ∀ {Γ Δ} {σ τ} →
+VCC-sub-$ : ∀ {Γ Δ} {σ τ} →
   (ρ : Env₀ Δ) → (C : VCC⟪ Γ ⊢ σ ⟫ τ Δ) → (M : Trm σ Γ) → 
-  (VCC-sub ρ C) ⟪ M ⟫VCC ≡ βVΓ ρ (C ⟪ M ⟫VCC)
-VCC-sub-βV {Δ = ε}     ρ C M = PEq.refl
-VCC-sub-βV {Δ = Δ ∙ τ} ρ C =
-  VCC-sub-βV (succ ρ) ((`λ C) `$ (`exp (ren₀-zero ρ))) 
+  (VCC-sub ρ C) ⟪ M ⟫VCC ≡ letVΓ ρ (C ⟪ M ⟫VCC)
+VCC-sub-$ {Δ = ε}     ρ C M = PEq.refl
+VCC-sub-$ {Δ = Δ ∙ τ} ρ C =
+  VCC-sub-$ (succ ρ) (`let (`exp (`val (ren₀-zero ρ))) C)
 
 -- composition of contexts
 
@@ -239,13 +217,13 @@ vcc-apx→gnd-eqv^T {Γ} {τ} {M} {N} sMN ρ = gnd-eqv-subst
   where P : VCC⟪ Γ ⊢ τ ⟫ τ ε
         P = VCC-sub ρ ⟪-⟫ 
 
-        βV-subst : ∀ M → (P ⟪ M ⟫VCC) →βV subst M ρ
-        βV-subst M rewrite VCC-sub-βV ρ ⟪-⟫ M with βV-subst₀ ρ M 
+        $-subst : ∀ M → (P ⟪ M ⟫VCC) →$ subst M ρ
+        $-subst M rewrite VCC-sub-$ ρ ⟪-⟫ M with $-subst₀ ρ M 
         ... | prf rewrite subst-equiv ρ M = prf 
 
         gnd-eqv-subst : gnd-eqv₀ {`trm} (subst M ρ) (subst N ρ)
-        gnd-eqv-subst = lemma-2-10i-βV (βV-subst M)
-                                   (lemma-2-10ii-βV (sMN P) (βV-subst N))
+        gnd-eqv-subst = lemma-2-10i-$ ($-subst M)
+                                   (lemma-2-10ii-$ (sMN P) ($-subst N))
 
 vcc-apx₀ : GRel₀^E
 vcc-apx₀ {f} = case f return (λ f → ∀ {υ} → Rel^E {f} {_} {ε} {υ})
@@ -288,3 +266,4 @@ vsc-apx→vcc-apx^T {Γ} {τ} {M} {N} sMN P with sMN (vcc-to-vsc P)
 
 vsc-apx₀→vcc-apx₀^T : ∀ {τ} {M N : Trm₀ τ} → vsc-apx₀ M N → vcc-apx₀ M N
 vsc-apx₀→vcc-apx₀^T = vsc-apx→vcc-apx^T {ε}
+

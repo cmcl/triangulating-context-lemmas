@@ -109,7 +109,7 @@ asc-to-vcc (P `* V) = appVCC (asc-to-vcc P) V
 
 →$-asc-vcc : ∀ {Γ} {σ τ} → (P : ASC⟪ Γ ⊢ σ ⟫ τ ε) → (M : Trm σ Γ) →
   ((asc-to-vcc P) ⟪ M ⟫VCC) →$ (P ⟪ M ⟫ASC)
-→$-asc-vcc ⟪- ρ -⟫ M rewrite VCC-sub-βV ρ ⟪-⟫ M = →βV-$ (βV-subst₀ ρ M)
+→$-asc-vcc ⟪- ρ -⟫ M rewrite VCC-sub-$ ρ ⟪-⟫ M = $-subst₀ ρ M
 →$-asc-vcc (P `* V) M with →$-asc-vcc P M
 ... | →$PM = →MN-$ →$PM
 
