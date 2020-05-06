@@ -4,11 +4,8 @@
 module asc-apx where
 
 open import Level as L using (Level ; _⊔_)
-open import Data.Product hiding (map)
 open import Function as F hiding (_∋_ ; _$_)
-open import Relation.Binary.PropositionalEquality as PEq using (_≡_)
 
-open import lambda-fg
 open import acmm
 open import relations
 open import sim-fusion-lemmas
@@ -73,33 +70,34 @@ _⟪∘_⟫ASC_ : ∀ {Γ Δ Ξ} {σ τ υ} (P : ASC⟪ Δ ⊢ σ ⟫ τ Ξ) (T 
 ⟪- ρ -⟫   ⟪∘ T ⟫ASC Q = Q substASC⟪ T ⟫ ρ
 (F `* V)  ⟪∘ T ⟫ASC Q rewrite F ⟪∘ T ⟫ASC Q = PEq.refl
 
--- Applicative Substituting Contexts simulation/approximation
+-- Applicative Substituting Contexts approximation
 -- The fundamental relations, quantifying over all applicative contexts.
 
-asc-sim : ∀ {f} {Γ} {υ} → Rel^E {f} {L.zero} {Γ} {υ}
-asc-sim {f} = case f return (λ f → ∀ {Γ} {υ} → Rel^E {f} {_} {Γ} {υ})
- of λ { `val → simV ; `trm → simT }
+asc-apx : ∀ {f} {Γ} {υ} → Rel^E {f} {L.zero} {Γ} {υ}
+asc-apx {f} = case f return (λ f → ∀ {Γ} {υ} → Rel^E {f} {_} {Γ} {υ})
+ of λ { `val → apxV ; `trm → apxT }
  where
-  simV : ∀ {Γ} {τ} → Rel^V {_} {Γ} {τ}
-  simT : ∀ {Γ} {τ} → Rel^T {_} {Γ} {τ}
-  simV {Γ} {τ}     = _[ simT {Γ} {τ} ]^V_
-  simT {Γ} {τ} M N =
-    {σ : Ty} (P : ASC⟪ Γ ⊢ τ ⟫ σ ε) → sim₀ {`trm} (P ⟪ M ⟫ASC) (P ⟪ N ⟫ASC)
+  apxV : ∀ {Γ} {τ} → Rel^V {_} {Γ} {τ}
+  apxT : ∀ {Γ} {τ} → Rel^T {_} {Γ} {τ}
+  apxV {Γ} {τ}     = _[ apxT {Γ} {τ} ]^V_
+  apxT {Γ} {τ} M N =
+    {σ : Ty} (P : ASC⟪ Γ ⊢ τ ⟫ σ ε) →
+    gnd-eqv₀ {`trm} (P ⟪ M ⟫ASC) (P ⟪ N ⟫ASC)
 
--- open simulation follows trivially: use the obvious context, the hole
+-- open ground equivalence follows trivially: use the obvious context, the hole
 -- itself!
 
-asc-sim→sim^T : ∀ {Γ} {τ} {M N} → asc-sim M N → sim {`trm} {Γ} {τ} M N
-asc-sim→sim^T {Γ} {τ} sMN ρ = sMN P where P = ⟪- ρ -⟫
+asc-apx→gnd-eqv^T : ∀ {Γ} {τ} {M N} → asc-apx M N → gnd-eqv {`trm} {Γ} {τ} M N
+asc-apx→gnd-eqv^T {Γ} {τ} sMN ρ = sMN P where P = ⟪- ρ -⟫
 
-asc-sim₀ : GRel₀^E
-asc-sim₀ {f} = case f return (λ f → ∀ {υ} → Rel^E {f} {_} {ε} {υ})
- of λ { `val → simV ; `trm → simT }
+asc-apx₀ : GRel₀^E
+asc-apx₀ {f} = case f return (λ f → ∀ {υ} → Rel^E {f} {_} {ε} {υ})
+ of λ { `val → apxV ; `trm → apxT }
  where
-  simV : GRel₀^V
-  simT : GRel₀^T
-  simV {τ} = _[ simT {τ} ]^V_
-  simT     = asc-sim {`trm} {ε}
+  apxV : GRel₀^V
+  apxT : GRel₀^T
+  apxV {τ} = _[ apxT {τ} ]^V_
+  apxT     = asc-apx {`trm} {ε}
 
 appVCC : ∀ {Γ Δ} {ω σ τ} →
   VCC⟪ Γ ⊢ ω ⟫ {`trm} (σ `→ τ) Δ → Val σ Δ → VCC⟪ Γ ⊢ ω ⟫ {`trm} τ Δ
@@ -115,19 +113,19 @@ asc-to-vcc (P `* V) = appVCC (asc-to-vcc P) V
 →$-asc-vcc (P `* V) M with →$-asc-vcc P M
 ... | →$PM = →MN-$ →$PM
 
-vcc-sim→asc-sim^T : ∀ {Γ} {τ} {M N} →
-  vcc-sim M N → asc-sim {`trm} {Γ} {τ} M N
-vcc-sim→asc-sim^T {Γ} {τ} {M} {N} sMN ⟪- ρ -⟫ = vcc-sim→sim^T sMN ρ
-vcc-sim→asc-sim^T {Γ} {τ} {M} {N} sMN (P `* V)
+vcc-apx→asc-apx^T : ∀ {Γ} {τ} {M N} →
+  vcc-apx M N → asc-apx {`trm} {Γ} {τ} M N
+vcc-apx→asc-apx^T {Γ} {τ} {M} {N} sMN ⟪- ρ -⟫ = vcc-apx→gnd-eqv^T sMN ρ
+vcc-apx→asc-apx^T {Γ} {τ} {M} {N} sMN (P `* V)
   with sMN (asc-to-vcc (P `* V))
 ... | hyp = lemma-2-10i-$ (→MN-$ (→$-asc-vcc P M))
                           (lemma-2-10ii-$ hyp (→MN-$ (→$-asc-vcc P N)))
 
-vcc-sim₀→asc-sim₀^T : ∀ {τ} {M N : Trm₀ τ} → vcc-sim₀ M N → asc-sim₀ M N
-vcc-sim₀→asc-sim₀^T = vcc-sim→asc-sim^T {ε}
+vcc-apx₀→asc-apx₀^T : ∀ {τ} {M N : Trm₀ τ} → vcc-apx₀ M N → asc-apx₀ M N
+vcc-apx₀→asc-apx₀^T = vcc-apx→asc-apx^T {ε}
 
 -- ASC apx is contained within VSC apx.
 
-cxt-sim→asc-sim^T : ∀ {Γ} {τ} {M N} → cxt-sim M N → asc-sim {`trm} {Γ} {τ} M N
-cxt-sim→asc-sim^T {Γ} {τ} {M} {N} sMN with cxt-sim→vcc-sim^T sMN
-... | sMN-VCC = vcc-sim→asc-sim^T sMN-VCC
+vsc-apx→asc-apx^T : ∀ {Γ} {τ} {M N} → vsc-apx M N → asc-apx {`trm} {Γ} {τ} M N
+vsc-apx→asc-apx^T {Γ} {τ} {M} {N} sMN with vsc-apx→vcc-apx^T sMN
+... | sMN-VCC = vcc-apx→asc-apx^T sMN-VCC

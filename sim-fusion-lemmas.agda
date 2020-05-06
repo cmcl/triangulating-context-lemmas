@@ -3,12 +3,8 @@
 module sim-fusion-lemmas where
 
 open import Level as L using (Level ; _⊔_)
-open import Data.Product hiding (map)
 open import Function as F hiding (_∋_ ; _$_)
 
-open import Relation.Binary.PropositionalEquality as PEq using (_≡_)
-
-open import lambda-fg
 open import acmm
 open import sim-fusion
 
@@ -194,10 +190,6 @@ Sub-ren-fusion =
   var₀-BC = PEq.refl
   }
 
--- composition of valuations: sub-sub fusion
-_*-Sub_ : ∀ {Γ Δ Ξ} → (ρ : Δ ⊨ Ξ) → (ρ' : Γ ⊨ Δ) → Γ ⊨ Ξ
-ρ *-Sub ρ' = map-Env (ρ *-Val_) ρ'
-
 sub-sub-R∙ : ∀ {Γ Δ Θ} {σ} →
   {ρ^A : Γ ⊨ Δ} → {ρ^B : Δ ⊨ Θ} → {ρ^C : Γ ⊨ Θ} →
   {u^B u^C : Val σ Θ} →
@@ -234,19 +226,14 @@ Sub-sub-fusion =
   var₀-BC = PEq.refl
   }
 
-lemma33 : ∀ {f} {Γ Δ Ξ} {σ} → (ρ : Δ ⊨ Ξ) → (ρ' : Γ ⊨ Δ) → (E : Exp {f} σ Γ) →
- ((ρ *-Sub ρ') *-Val E) ≡ (ρ *-Val (ρ' *-Val E))
-lemma33 ρ ρ' E = PEq.sym (lemma E {ρ^A = ρ'} {ρ^B = ρ} (λ v → PEq.refl))
+sub-sub : ∀ {f} {Γ Δ Ξ} {σ} → (ρ : Δ ⊨ Ξ) → (ρ' : Γ ⊨ Δ) → (E : Exp {f} σ Γ) →
+ (ρ *-Val (ρ' *-Val E)) ≡ ((ρ *-Sub ρ') *-Val E)
+sub-sub ρ ρ' E = lemma E {ρ^A = ρ'} {ρ^B = ρ} (λ v → PEq.refl)
   where open Fuse (syntacticFusion Sub-sub-fusion)
 
-infixl 10 _⟨_/var₀⟩
-
-_⟨_/var₀⟩ : ∀ {f} {σ τ} → [ σ ⊢ Exp {f} τ ⟶ Val σ ⟶ Exp {f} τ ]
-E ⟨ U /var₀⟩ = subst E (ι^Env `∙ U)
-
-lemma34 : ∀ {f} {Γ Δ} {σ τ} → (E : (σ ⊢ Exp {f} τ) Γ) → (ρ : Γ ⊨ Δ) → ∀ U →
- subst E (ρ `∙ U) ≡ subst E (ext₀^Env ρ) ⟨ U /var₀⟩
-lemma34 E ρ U = lemma33 (ι^Env `∙ U) (ext₀^Env ρ) E
+lemma33 : ∀ {f} {Γ Δ Ξ} {σ} → (ρ : Δ ⊨ Ξ) → (ρ' : Γ ⊨ Δ) → (E : Exp {f} σ Γ) →
+ ((ρ *-Sub ρ') *-Val E) ≡ (ρ *-Val (ρ' *-Val E))
+lemma33 ρ ρ' E = PEq.sym (sub-sub ρ ρ' E)
 
 lemma33-ren : ∀ {f} {Γ Δ Ξ} {σ} → (r : Δ ⊆ Ξ) → (r' : Γ ⊆ Δ) →
   (E : Exp {f} σ Γ) → (trans^Var r' r *-Var E) ≡ (r *-Var (r' *-Var E))
@@ -281,6 +268,13 @@ ren-sub E r ρ {ρ'} eq = lemma E {r} {ρ} eq
 weak-sub : ∀ {f} {Γ} {σ τ} → (V : Val τ Γ) → (E : Exp {f} σ Γ) →
   (weak *-Var E) ⟨ V /var₀⟩ ≡ E
 weak-sub V E = ι^Var^Env-lemma-aux E weak (ι^Env `∙ V) (λ v → PEq.refl)
+
+lemma34 : ∀ {f} {Γ Δ} {σ τ} → (E : (σ ⊢ Exp {f} τ) Γ) → (ρ : Γ ⊨ Δ) → ∀ U →
+ subst E (ρ `∙ U) ≡ subst E (ext₀^Env ρ) ⟨ U /var₀⟩
+lemma34 {f} {Γ} {Δ} E ρ U rewrite sub-sub (ι^Env {Δ} `∙ U) (ext₀^Env ρ) E =
+  subst-ext E [ P ][ PEq.refl ,,, (λ v → PEq.sym (weak-sub U (var ρ v))) ]
+  where
+    P = λ {τ} v → var (ρ `∙ U) {τ} v ≡ var ((ι^Env `∙ U) *-Sub (ext₀^Env ρ)) v
 
 sub-ren : ∀ {f} {Γ Δ Θ} {σ} → (E : Exp {f} σ Γ) →
   (ρ : Γ ⊨ Δ) → (r : Δ ⊆ Θ) → {ρ' : Γ ⊨ Θ} →

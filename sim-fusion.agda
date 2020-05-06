@@ -3,12 +3,8 @@
 module sim-fusion where
 
 open import Level as L using (Level ; _⊔_)
-open import Data.Product hiding (map)
 open import Function as F hiding (_∋_ ; _$_)
 
-open import Relation.Binary.PropositionalEquality as PEq using (_≡_)
-
-open import lambda-fg
 open import acmm
 
 -- A relational premodel

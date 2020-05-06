@@ -1,14 +1,11 @@
-{-# OPTIONS --copatterns #-}
+{--------------------------------}
+{-- Triangle for frame stacks. --}
+{--------------------------------}
 module tri-frm-stk where
 
-open import Data.Bool renaming (true to tt ; false to ff)
-open import Data.Product hiding (map)
-open import Function as F hiding (_∋_ ; _$_)
 open import Level as L using (Level ; _⊔_)
+open import Function as F hiding (_∋_ ; _$_)
 
-open import Relation.Binary.PropositionalEquality as PEq using (_≡_)
-
-open import lambda-fg
 open import acmm
 open import sim-fusion-lemmas
 open import relations
@@ -23,134 +20,136 @@ lemma-[_]^F-refl : {ℓ^V : Level} {σ τ : Ty} {R : GRel^V {ℓ^V} {σ}}
   S , M [ R ]^F S , M
 lemma-[ r ]^F-refl S M {U = U} der = U , der , r U
 
--- Now prove directly that contextual approximation/simulation implies
--- ``applicative frame stack'' approximation (ciu-sim)
+-- Now prove directly that CIU approximation implies `applicative frame stack'
+-- approximation
 
 mutual
 
-  app-frm-sim₀ : GRel₀^E
-  app-frm-sim₀ = λ { {`val} → app-frm-sim₀^V ; {`trm} → app-frm-sim₀^T }
+  app-frm-apx₀ : GRel₀^E
+  app-frm-apx₀ {`val} = app-frm-apx₀^V
+  app-frm-apx₀ {`trm} = app-frm-apx₀^T
 
-  data app-frm-sim₀^B : GRel₀^B where
-    app-frm-sim₀^B-b : ∀ {β} {b b'} →
-      sim₀^B {β} b b' → app-frm-sim₀^B {β} b b'
+  data app-frm-apx₀^B : GRel₀^B where
+    app-frm-apx₀^B-b : ∀ {β} {b b'} →
+      gnd-eqv₀^B {β} b b' → app-frm-apx₀^B {β} b b'
 
-  data app-frm-sim₀^V : GRel₀^V where
-    app-frm-sim₀^V-b : ∀ {β} {b b'} → app-frm-sim₀^B {β} b b' →
-      app-frm-sim₀^V {`b β} (`b b) (`b b)
+  data app-frm-apx₀^V : GRel₀^V where
+    app-frm-apx₀^V-b : ∀ {β} {b b'} → app-frm-apx₀^B {β} b b' →
+      app-frm-apx₀^V {`b β} (`b b) (`b b)
 
-    app-frm-sim₀^V-λ : ∀ {σ τ} {M N} →
-      (∀ U → app-frm-sim₀^T {τ} (M ⟨ U /var₀⟩) (N ⟨ U /var₀⟩)) →
-      app-frm-sim₀^V {σ `→ τ} (`λ M) (`λ N)
+    app-frm-apx₀^V-λ : ∀ {σ τ} {M N} →
+      (∀ U → app-frm-apx₀^T {τ} (M ⟨ U /var₀⟩) (N ⟨ U /var₀⟩)) →
+      app-frm-apx₀^V {σ `→ τ} (`λ M) (`λ N)
 
-  app-frm-sim₀^T : GRel₀^T
-  app-frm-sim₀^T {τ} M N = ∀ {σ} {S} → S , M [ sim₀^V {σ} ]^F S , N
+  app-frm-apx₀^T : GRel₀^T
+  app-frm-apx₀^T {τ} M N = ∀ {σ} {S} → S , M [ gnd-eqv₀^V {σ} ]^F S , N
 
-App-frm-sim : ∀ (f : CBV) → Set₁
-App-frm-sim f = ∀ {Γ} {τ} → Rel^E {f} {L.zero} {Γ} {τ}
-app-frm-sim : ∀ {f} → App-frm-sim f
-app-frm-sim {f} = case f return App-frm-sim of
-  λ { `val →  simV ; `trm → simT  }
+App-frm-apx : ∀ (f : CBV) → Set₁
+App-frm-apx f = ∀ {Γ} {τ} → Rel^E {f} {L.zero} {Γ} {τ}
+app-frm-apx : ∀ {f} → App-frm-apx f
+app-frm-apx {f} = case f return App-frm-apx of
+  λ { `val →  apxV ; `trm → apxT  }
  where
-  simV : App-frm-sim `val
-  simT : App-frm-sim `trm
-  simV {Γ} {τ} = _[ simT {Γ} {τ} ]^V_
-  simT {Γ} {τ} = _[ app-frm-sim₀ {`trm} {τ} ]^O_
+  apxV : App-frm-apx `val
+  apxT : App-frm-apx `trm
+  apxV {Γ} {τ} = _[ apxT {Γ} {τ} ]^V_
+  apxT {Γ} {τ} = _[ app-frm-apx₀ {`trm} {τ} ]^O_
 
-App-frm-sim₀-refl : (f : CBV) → Set
-App-frm-sim₀-refl f = ∀ {τ} E → app-frm-sim₀ {f} {τ} E E
-app-frm-sim₀-refl : ∀ {f} → App-frm-sim₀-refl f
-app-frm-sim₀-refl {f} = case f return App-frm-sim₀-refl of
+App-frm-apx₀-refl : (f : CBV) → Set
+App-frm-apx₀-refl f = ∀ {τ} E → app-frm-apx₀ {f} {τ} E E
+app-frm-apx₀-refl : ∀ {f} → App-frm-apx₀-refl f
+app-frm-apx₀-refl {f} = case f return App-frm-apx₀-refl of
   λ { `val → prfV ; `trm → prfT }
   where
-    prfV : App-frm-sim₀-refl `val
-    prfT : App-frm-sim₀-refl `trm
+    prfV : App-frm-apx₀-refl `val
+    prfT : App-frm-apx₀-refl `trm
 
     prfV {`b β} (`var ())
-    prfV {`b β} (`b b) = app-frm-sim₀^V-b (app-frm-sim₀^B-b (sim₀^B-b b))
+    prfV {`b β} (`b b) = app-frm-apx₀^V-b (app-frm-apx₀^B-b (gnd-eqv₀^B-b b))
     prfV {σ `→ τ₁} (`var ())
-    prfV {σ `→ τ} (`λ M) = app-frm-sim₀^V-λ (λ U → prfT (M ⟨ U /var₀⟩))
+    prfV {σ `→ τ} (`λ M) = app-frm-apx₀^V-λ (λ U → prfT (M ⟨ U /var₀⟩))
 
-    -- NB: sim₀-refl used for relating final values!
-    prfT {τ} M {σ} {S} = lemma-[ sim₀-refl ]^F-refl S M
+    -- NB: gnd-eqv₀-refl used for relating final values!
+    prfT {τ} M {σ} {S} = lemma-[ gnd-eqv₀-refl ]^F-refl S M
 
-ciu-sim→app-frm-sim : ∀ {Γ} {τ} {M N} →
-  ciu-sim M N → app-frm-sim {`trm} {Γ} {τ} M N
-ciu-sim→app-frm-sim {M = M} {N = N} sMN ρ {σ} {S} evSM
+ciu-apx→app-frm-apx : ∀ {Γ} {τ} {M N} →
+  ciu-apx M N → app-frm-apx {`trm} {Γ} {τ} M N
+ciu-apx→app-frm-apx {M = M} {N = N} sMN ρ {σ} {S} evSM
   with sMN (letF-ciu S ⟪- ρ -⟫)
 ... | prf rewrite letF-⟪ M ⟫ S ⟪- ρ -⟫ with prf (lemmaF evSM)
 ... | V , derSN , sUV rewrite letF-⟪ N ⟫ S ⟪- ρ -⟫ =
   V , corollaryF derSN , sUV
 
-ciu-sim₀→app-frm-sim₀ : ∀ {τ} {M N} →
-  ciu-sim₀ M N → app-frm-sim₀ {`trm} {τ} M N
-ciu-sim₀→app-frm-sim₀ {τ} {M} {N} sMN {σ} {S}
-  with ciu-sim→app-frm-sim {ε} {τ} {M} {N} sMN `ε {σ} {S}
+ciu-apx₀→app-frm-apx₀ : ∀ {τ} {M N} →
+  ciu-apx₀ M N → app-frm-apx₀ {`trm} {τ} M N
+ciu-apx₀→app-frm-apx₀ {τ} {M} {N} sMN {σ} {S}
+  with ciu-apx→app-frm-apx {ε} {τ} {M} {N} sMN `ε {σ} {S}
 ... | prf rewrite ι^Env₀-lemma `ε M | ι^Env₀-lemma `ε N = prf
 
 {--------------------------------}
 {-- Logical frame approximation -}
 {--------------------------------}
 
-log-frm-sim₀^V : GRel₀^V
-log-frm-sim₀^T : GRel₀^T
+log-frm-apx₀^V : GRel₀^V
+log-frm-apx₀^T : GRel₀^T
 
-frm-sim₀ : {σ τ : Ty} → Rel^S {L.zero} {σ} {τ}
-frm-sim₀ {σ} {τ} S^U S^V = ∀ {U V} → log-frm-sim₀^V {τ} U V →
-  S^U , `val U [ sim₀ ]^F S^V , `val V
+frm-apx₀ : {σ τ : Ty} → Rel^S {L.zero} {σ} {τ}
+frm-apx₀ {σ} {τ} S^U S^V = ∀ {U V} → log-frm-apx₀^V {τ} U V →
+  S^U , `val U [ gnd-eqv₀ ]^F S^V , `val V
 
-log-frm-sim₀ : GRel₀^E
-log-frm-sim₀ = λ { {`val} → log-frm-sim₀^V ; {`trm} → log-frm-sim₀^T }
+log-frm-apx₀ : GRel₀^E
+log-frm-apx₀ {`val} = log-frm-apx₀^V
+log-frm-apx₀ {`trm} = log-frm-apx₀^T
 
-log-frm-sim₀^V {`b β} (`var ())
-log-frm-sim₀^V {`b β} (`b b) (`var ())
-log-frm-sim₀^V {`b β} (`b b) (`b b') = sim₀^B b b'
-log-frm-sim₀^V {σ `→ τ} (`var ())
-log-frm-sim₀^V {σ `→ τ} (`λ M) (`var ())
-log-frm-sim₀^V {σ `→ τ} (`λ M) (`λ N) =
-  ∀ {U V} → log-frm-sim₀^V U V → log-frm-sim₀^T (M ⟨ U /var₀⟩) (N ⟨ V /var₀⟩)
+log-frm-apx₀^V {`b β} (`var ())
+log-frm-apx₀^V {`b β} (`b b) (`var ())
+log-frm-apx₀^V {`b β} (`b b) (`b b') = gnd-eqv₀^B b b'
+log-frm-apx₀^V {σ `→ τ} (`var ())
+log-frm-apx₀^V {σ `→ τ} (`λ M) (`var ())
+log-frm-apx₀^V {σ `→ τ} (`λ M) (`λ N) =
+  ∀ {U V} → log-frm-apx₀^V U V → log-frm-apx₀^T (M ⟨ U /var₀⟩) (N ⟨ V /var₀⟩)
 
-log-frm-sim₀^T {τ} M N = ∀ {σ} → M [ frm-sim₀ {σ} {τ} & sim₀^V {σ} ]^F N
+log-frm-apx₀^T {τ} M N = ∀ {σ} → M [ frm-apx₀ {σ} {τ} & gnd-eqv₀^V {σ} ]^F N
 
-log-frm-sim : ∀ {f} {Γ} {τ} → Rel^E {f} {_} {Γ} {τ}
-log-frm-sim = _O^[ log-frm-sim₀ ]^O_
+log-frm-apx : ∀ {f} {Γ} {τ} → Rel^E {f} {_} {Γ} {τ}
+log-frm-apx = _O^[ log-frm-apx₀ ]^O_
 
-Log-frm-sim-sim₀ : (f : CBV) → Set
-Log-frm-sim-sim₀ f = ∀ {σ} {M N} → log-frm-sim₀ M N → sim₀ {f} {σ} M N
-log-frm-sim-sim₀ : ∀ {f} → Log-frm-sim-sim₀ f
-log-frm-sim-sim₀ {f} = case f return Log-frm-sim-sim₀ of
+Log-frm-apx-gnd-eqv₀ : (f : CBV) → Set
+Log-frm-apx-gnd-eqv₀ f = ∀ {σ} {M N} → log-frm-apx₀ M N → gnd-eqv₀ {f} {σ} M N
+log-frm-apx-gnd-eqv₀ : ∀ {f} → Log-frm-apx-gnd-eqv₀ f
+log-frm-apx-gnd-eqv₀ {f} = case f return Log-frm-apx-gnd-eqv₀ of
   λ { `val → prfV ; `trm → prfT }
     where
-      prfV : Log-frm-sim-sim₀ `val
-      prfT : Log-frm-sim-sim₀ `trm
+      prfV : Log-frm-apx-gnd-eqv₀ `val
+      prfT : Log-frm-apx-gnd-eqv₀ `trm
 
-      frm-sim₀-id-refl : ∀ {σ} → frm-sim₀ {σ} {σ} Id Id
-      frm-sim₀-id-refl _ (↓red () evIdU)
-      frm-sim₀-id-refl {U = U} {V = V} sUV ↓val = V , ↓val , prfV sUV
+      frm-apx₀-id-refl : ∀ {σ} → frm-apx₀ {σ} {σ} Id Id
+      frm-apx₀-id-refl _ (↓red () evIdU)
+      frm-apx₀-id-refl {U = U} {V = V} sUV ↓val = V , ↓val , prfV sUV
 
       prfV {`b β} {`var ()}
       prfV {`b β} {`b b} {`var ()}
-      prfV {`b β} {`b b} {`b b'} sBB' = sim₀^V-b sBB'
+      prfV {`b β} {`b b} {`b b'} sBB' = gnd-eqv₀^V-b sBB'
       prfV {σ `→ τ} {`var ()}
       prfV {σ `→ τ} {`λ M} {`var ()}
-      prfV {σ `→ τ} {`λ M} {`λ N} _ = sim₀^V-λ
+      prfV {σ `→ τ} {`λ M} {`λ N} _ = gnd-eqv₀^V-λ
 
-      prfT {τ} {M} {N} sMN derM with sMN {τ} frm-sim₀-id-refl (corollary derM)
+      prfT {τ} {M} {N} sMN derM with sMN {τ} frm-apx₀-id-refl (corollary derM)
       ... | V , evIdN , sUV = V , lemmaF evIdN , sUV
 
-Log-frm-sim₀-log-frm-sim : (f : CBV) → Set
-Log-frm-sim₀-log-frm-sim f = ∀ {σ} {M N} → log-frm-sim₀ M N →
-  log-frm-sim {f} {ε} {σ} M N
+Log-frm-apx₀-log-frm-apx : (f : CBV) → Set
+Log-frm-apx₀-log-frm-apx f = ∀ {σ} {M N} → log-frm-apx₀ M N →
+  log-frm-apx {f} {ε} {σ} M N
 
-log-frm-sim₀-log-frm-sim : ∀ {f} → Log-frm-sim₀-log-frm-sim f
-log-frm-sim₀-log-frm-sim {f} = case f return Log-frm-sim₀-log-frm-sim of
+log-frm-apx₀-log-frm-apx : ∀ {f} → Log-frm-apx₀-log-frm-apx f
+log-frm-apx₀-log-frm-apx {f} = case f return Log-frm-apx₀-log-frm-apx of
   λ { `val → prfV ; `trm → prfT }
  where
-  prfV : Log-frm-sim₀-log-frm-sim `val
-  prfT : Log-frm-sim₀-log-frm-sim `trm
-  prfV {σ} {V} {W} sVW {ρV} {ρW} simρ
+  prfV : Log-frm-apx₀-log-frm-apx `val
+  prfT : Log-frm-apx₀-log-frm-apx `trm
+  prfV {σ} {V} {W} sVW {ρV} {ρW} apxρ
     rewrite ι^Env₀-lemma ρV V | ι^Env₀-lemma ρW W = sVW
-  prfT {σ} {M} {N} sMN {ρM} {ρN} simρ
+  prfT {σ} {M} {N} sMN {ρM} {ρN} apxρ
     rewrite ι^Env₀-lemma ρM M | ι^Env₀-lemma ρN N = sMN
 
 
@@ -200,236 +199,206 @@ lemma-[-]^F-app R^V-λ {`λ M} {`λ N} {V} {W} rMN rVW =
 
 beta-stk-if : ∀ {σ τ ω} {S : Frm σ τ} {M : (ω ⊢ Trm τ) ε}
   {U : Val₀ ω} {V : Val₀ σ} → S , M ⟨ U /var₀⟩ ↓ V → S , `λ M `$ U ↓ V
-beta-stk-if evSMU with ↓standard evSMU
-... | W , evIdMU , evSW with lemmaF evIdMU
-... | derMW = ↓letV-lemma (⇓app derMW) evSW
+beta-stk-if evSMU = ↓red →₁app evSMU
 
 beta-stk-only-if : ∀ {σ τ ω} {S : Frm σ τ} {M : (ω ⊢ Trm τ) ε}
   {U : Val₀ ω} {V : Val₀ σ} → S , `λ M `$ U ↓ V → S , M ⟨ U /var₀⟩ ↓ V
-beta-stk-only-if evSMU with ↓standard evSMU
-... | W , evIdMU , evSW with lemmaF evIdMU
-... | ⇓app derMW = ↓letV-lemma derMW evSW
+beta-stk-only-if (↓red →₁app evSMU) = evSMU
 
 -- Not as slick as James' proof using lemma-[-]^T-app!
-log-frm-sim₀^T-app : ∀ {σ τ} {f g} {a b} → log-frm-sim₀^V {σ `→ τ} f g →
-  log-frm-sim₀ a b → log-frm-sim₀ (f `$ a) (g `$ b)
-log-frm-sim₀^T-app {f = `var ()}
-log-frm-sim₀^T-app {f = `λ M} {`var ()} sFG sAB sST evS
-log-frm-sim₀^T-app {f = `λ M} {g = `λ N} {a = U} {b = V} sFG sAB sST evS
+log-frm-apx₀^T-app : ∀ {σ τ} {f g} {a b} → log-frm-apx₀^V {σ `→ τ} f g →
+  log-frm-apx₀ a b → log-frm-apx₀ (f `$ a) (g `$ b)
+log-frm-apx₀^T-app {f = `var ()}
+log-frm-apx₀^T-app {f = `λ M} {`var ()} sFG sAB sST evS
+log-frm-apx₀^T-app {f = `λ M} {g = `λ N} {a = U} {b = V} sFG sAB sST evS
    with sFG sAB sST (beta-stk-only-if evS)
 ... | U^T , evTNV , sU^SU^T = U^T , beta-stk-if evTNV , sU^SU^T
 
-log-frm-sim₀^T-if : ∀ {σ} {b b'} {l l' r r'} → log-frm-sim₀ b b' →
-  log-frm-sim₀ l l' → log-frm-sim₀ r r' →
-  log-frm-sim₀^T {σ} (`if b l r) (`if b' l' r')
-log-frm-sim₀^T-if {b = `var ()}
-log-frm-sim₀^T-if {b = `b b} {`var ()}
-log-frm-sim₀^T-if {b = `b ff} {`b tt} ()
-log-frm-sim₀^T-if {b = `b tt} {`b ff} ()
-log-frm-sim₀^T-if {b = `b ff} {`b ff} _ _ sRR' =
+log-frm-apx₀^T-if : ∀ {σ} {b b'} {l l' r r'} → log-frm-apx₀ b b' →
+  log-frm-apx₀ l l' → log-frm-apx₀ r r' →
+  log-frm-apx₀^T {σ} (`if b l r) (`if b' l' r')
+log-frm-apx₀^T-if {b = `var ()}
+log-frm-apx₀^T-if {b = `b b} {`var ()}
+log-frm-apx₀^T-if {b = `b ff} {`b tt} ()
+log-frm-apx₀^T-if {b = `b tt} {`b ff} ()
+log-frm-apx₀^T-if {b = `b ff} {`b ff} _ _ sRR' =
   lemma-2-10i-exp-stk →₁if (lemma-2-10ii-exp-stk →₁if sRR')
-log-frm-sim₀^T-if {b = `b tt} {`b tt} _ sLL' _ =
+log-frm-apx₀^T-if {b = `b tt} {`b tt} _ sLL' _ =
   lemma-2-10ii-exp-stk →₁if (lemma-2-10i-exp-stk →₁if sLL')
 
-frm-sim₀-ext : ∀ {σ τ ω} {S T : Frm σ τ} {N N'} → frm-sim₀ {σ} {τ} S T →
-  (∀ {V W : Val₀ ω} → log-frm-sim₀ V W →
-    log-frm-sim₀ (N ⟨ V /var₀⟩) (N' ⟨ W /var₀⟩)) → frm-sim₀ (S ∙ N) (T ∙ N')
-frm-sim₀-ext sST sCC' sVW (↓red () evSNV)
-frm-sim₀-ext sST sCC' sVW (↓letV evSNV) with sCC' sVW sST evSNV
-... | W , evTNV , simRes = W , ↓letV evTNV , simRes
+frm-apx₀-ext : ∀ {σ τ ω} {S T : Frm σ τ} {N N'} → frm-apx₀ {σ} {τ} S T →
+  (∀ {V W : Val₀ ω} → log-frm-apx₀ V W →
+    log-frm-apx₀ (N ⟨ V /var₀⟩) (N' ⟨ W /var₀⟩)) → frm-apx₀ (S ∙ N) (T ∙ N')
+frm-apx₀-ext sST sCC' sVW (↓red () evSNV)
+frm-apx₀-ext sST sCC' sVW (↓letV evSNV) with sCC' sVW sST evSNV
+... | W , evTNV , apxRes = W , ↓letV evTNV , apxRes
 
-log-frm-sim₀^T-let : ∀ {σ τ} {M M'} {N N'} → (log-frm-sim₀^T {σ} M M') →
-  (∀ {V W} → log-frm-sim₀ V W →
-    log-frm-sim₀ (N ⟨ V /var₀⟩) (N' ⟨ W /var₀⟩)) →
-  log-frm-sim₀^T {τ} (`let M N) (`let M' N')
-log-frm-sim₀^T-let sMM' sCC' sST (↓red () evSMN)
-log-frm-sim₀^T-let {σ} {τ} {M = M} {M'} {N} {N'}
+log-frm-apx₀^T-let : ∀ {σ τ} {M M'} {N N'} → (log-frm-apx₀^T {σ} M M') →
+  (∀ {V W} → log-frm-apx₀ V W →
+    log-frm-apx₀ (N ⟨ V /var₀⟩) (N' ⟨ W /var₀⟩)) →
+  log-frm-apx₀^T {τ} (`let M N) (`let M' N')
+log-frm-apx₀^T-let sMM' sCC' sST (↓red () evSMN)
+log-frm-apx₀^T-let {σ} {τ} {M = M} {M'} {N} {N'}
                    sMM' sCC' {ω} {S} {T} sST (↓letT evSNM)
-  with frm-sim₀-ext {N = N} {N' = N'} sST sCC'
+  with frm-apx₀-ext {N = N} {N' = N'} sST sCC'
 ... | sSTN with sMM' {ω} sSTN evSNM
 ... | W , evTNW , sVW = W , ↓letT evTNW , sVW
 
-log-frm-sim₀^Ext : ∀ {σ} {V W : Val₀ σ} {Γ} {ρ ρ' : Env₀ Γ}
-  (simρ : ρ [ log-frm-sim₀^V ]^Env ρ')
-  (sVW : log-frm-sim₀ V W) →
-  (ρ `∙ V) [ log-frm-sim₀^V ]^Env (ρ' `∙ W)
-log-frm-sim₀^Ext simρ sVW = _∙₀^R_ {𝓔^R = log-frm-sim₀^V} simρ sVW
+log-frm-apx₀^Ext : ∀ {σ} {V W : Val₀ σ} {Γ} {ρ ρ' : Env₀ Γ}
+  (apxρ : ρ [ log-frm-apx₀^V ]^Env ρ')
+  (sVW : log-frm-apx₀ V W) →
+  (ρ `∙ V) [ log-frm-apx₀^V ]^Env (ρ' `∙ W)
+log-frm-apx₀^Ext apxρ sVW = _∙₀^R_ {𝓔^R = log-frm-apx₀^V} apxρ sVW
 
--- Essentially a copy of lemma-2-16 from James' development.
-log-frm-sim-refl : ∀ {f} {Γ} {τ} (E : Exp {f} τ Γ) → log-frm-sim E E
-log-frm-sim-refl (`var x) simρ = simρ x
-log-frm-sim-refl (`b b) simρ = sim₀^B-b b
-log-frm-sim-refl (`λ M) {ρM} {ρM'} simρ {U} {V} sUV
-  with log-frm-sim-refl M {ρM `∙ U} {ρM' `∙ V} (log-frm-sim₀^Ext simρ sUV)
+-- Lemma 4.13
+log-frm-apx-refl : ∀ {f} {Γ} {τ} (E : Exp {f} τ Γ) → log-frm-apx E E
+log-frm-apx-refl (`var x) apxρ = apxρ x
+log-frm-apx-refl (`b b) apxρ = gnd-eqv₀^B-b b
+log-frm-apx-refl (`λ M) {ρM} {ρM'} apxρ {U} {V} sUV
+  with log-frm-apx-refl M {ρM `∙ U} {ρM' `∙ V} (log-frm-apx₀^Ext apxρ sUV)
 ... | prf rewrite lemma34 M ρM U | lemma34 M ρM' V = prf
-log-frm-sim-refl (`val V) {ρS} {ρT} simρ with log-frm-sim-refl V simρ
-... | sVV = λ {σ} {S} {T} sST evSV → sST sVV evSV
-log-frm-sim-refl (f `$ a) simρ = log-frm-sim₀^T-app F A
-  where F = log-frm-sim-refl f simρ
-        A = log-frm-sim-refl a simρ
-log-frm-sim-refl (`if b l r) simρ = log-frm-sim₀^T-if B L R
-  where B = log-frm-sim-refl b simρ
-        L = log-frm-sim-refl l simρ
-        R = log-frm-sim-refl r simρ
-log-frm-sim-refl (`let M N) {ρ} {ρ'} simρ with log-frm-sim-refl M simρ
-... | prfM = log-frm-sim₀^T-let prfM prfN
+log-frm-apx-refl (`val V) {ρS} {ρT} apxρ with log-frm-apx-refl V apxρ
+... | sVV = λ sST evSV → sST sVV evSV
+log-frm-apx-refl (f `$ a) apxρ = log-frm-apx₀^T-app F A
+  where F = log-frm-apx-refl f apxρ
+        A = log-frm-apx-refl a apxρ
+log-frm-apx-refl (`if b l r) apxρ = log-frm-apx₀^T-if B L R
+  where B = log-frm-apx-refl b apxρ
+        L = log-frm-apx-refl l apxρ
+        R = log-frm-apx-refl r apxρ
+log-frm-apx-refl (`let M N) {ρ} {ρ'} apxρ with log-frm-apx-refl M apxρ
+... | prfM = log-frm-apx₀^T-let prfM prfN
   where Nρ = subst N (ext₀^Env ρ)
         Nρ' = subst N (ext₀^Env ρ')
-        prfN : ∀ {V W} → log-frm-sim₀ V W →
-               log-frm-sim₀ (Nρ ⟨ V /var₀⟩) (Nρ' ⟨ W /var₀⟩)
-        prfN {V} {W} sVW with log-frm-sim-refl N {ρ `∙ V} {ρ' `∙ W}
-                                               (log-frm-sim₀^Ext simρ sVW)
+        prfN : ∀ {V W} → log-frm-apx₀ V W →
+               log-frm-apx₀ (Nρ ⟨ V /var₀⟩) (Nρ' ⟨ W /var₀⟩)
+        prfN {V} {W} sVW with log-frm-apx-refl N {ρ `∙ V} {ρ' `∙ W}
+                                               (log-frm-apx₀^Ext apxρ sVW)
         ... | prf rewrite lemma34 N ρ V | lemma34 N ρ' W = prf
 
-Log-frm-sim₀-refl : (f : CBV) → Set
-Log-frm-sim₀-refl f = ∀ {τ} E → log-frm-sim₀ {f} {τ} E E
-log-frm-sim₀-refl : ∀ {f} → Log-frm-sim₀-refl f
-log-frm-sim₀-refl {f} = case f return Log-frm-sim₀-refl of
+Log-frm-apx₀-refl : (f : CBV) → Set
+Log-frm-apx₀-refl f = ∀ {τ} E → log-frm-apx₀ {f} {τ} E E
+log-frm-apx₀-refl : ∀ {f} → Log-frm-apx₀-refl f
+log-frm-apx₀-refl {f} = case f return Log-frm-apx₀-refl of
   λ { `val → prfV ; `trm → prfT }
   where
-    prfV : Log-frm-sim₀-refl `val
-    prfT : Log-frm-sim₀-refl `trm
-    prfS : ∀ {σ τ} S → frm-sim₀ {σ} {τ} S S
+    prfV : Log-frm-apx₀-refl `val
+    prfT : Log-frm-apx₀-refl `trm
+    prfS : ∀ {σ τ} S → frm-apx₀ {σ} {τ} S S
 
     prfV {`b β} (`var ())
-    prfV {`b β} (`b b) = sim₀^B-b b
+    prfV {`b β} (`b b) = gnd-eqv₀^B-b b
     prfV {σ `→ τ} (`var ())
-    prfV {σ `→ τ} (`λ M) sUV =
-      log-frm-sim-refl M (Val₀→Env₀ {𝓔^R = log-frm-sim₀^V} sUV)
+    prfV {σ `→ τ} (`λ M) sUV = log-frm-apx-refl M (_∙₀^R_ {𝓔^R = E^R} rel sUV)
+      where
+        E^R = λ {τ} → log-frm-apx₀^V {τ} 
+        rel : ι^Env [ E^R ]^Env ι^Env
+        rel ()
 
     prfT {τ} M sS^MS^N evalSM with ↓standard evalSM
     ... | U , evalIdM , evalS^MU with sS^MS^N (prfV U) evalS^MU
     ... | W^V , evalS^NU , sW^UW^V =
       W^V , ↓letV-lemma (lemmaF evalIdM) evalS^NU , sW^UW^V
 
-    prfS Id {U} {V} sUV ↓val = V , ↓val , log-frm-sim-sim₀ {`val} sUV
+    prfS Id {U} {V} sUV ↓val = V , ↓val , log-frm-apx-gnd-eqv₀ {`val} sUV
     prfS Id sUV (↓red () evS)
     prfS (S ∙ N) rUV (↓red () derU)
     prfS (S ∙ N) {U = U} rUV (↓letV derU) with prfS S
     ... | iH with (prfT (N ⟨ U /var₀⟩)) iH derU
-    ... | W^V , derV , rW^UW^V = W^V , ↓letV derV , rW^UW^V
+    ... | W^V , derV , rW^UW^V with prfV (`λ N) rUV (prfS S) derV
+    ... | W , derW , rW^VW =
+      W , ↓letV derW , gnd-eqv₀-trans {`val} rW^UW^V rW^VW
 
-lemma-2-18-aux-frm : ∀ {f} {Γ Δ} {τ υ} (P : Cxt⟪ Γ ⊢ τ ⟫ {f} υ Δ) →
- ∀ {M N} → log-frm-sim M N → log-frm-sim (P ⟪ M ⟫) (P ⟪ N ⟫)
-lemma-2-18-aux-frm (`λ P) {M} {N} sMN {ρM} {ρN} simρ {U} {V} sUV
-  with lemma-2-18-aux-frm P {M} {N} sMN {ρM `∙ U} {ρN `∙ V}
-       (log-frm-sim₀^Ext simρ sUV)
+lemma-4-14 : ∀ {f} {Γ Δ} {τ υ} (P : VSC⟪ Γ ⊢ τ ⟫ {f} υ Δ) →
+ ∀ {M N} → log-frm-apx M N → log-frm-apx (P ⟪ M ⟫) (P ⟪ N ⟫)
+lemma-4-14 (`λ P) {M} {N} sMN {ρM} {ρN} apxρ {U} {V} sUV
+  with lemma-4-14 P {M} {N} sMN {ρM `∙ U} {ρN `∙ V}
+       (log-frm-apx₀^Ext apxρ sUV)
 ... | prf rewrite lemma34 (P ⟪ M ⟫) ρM U | lemma34 (P ⟪ N ⟫) ρN V = prf
-lemma-2-18-aux-frm (`exp E) sMN simρ = log-frm-sim-refl E simρ
+lemma-4-14 (`exp E) sMN apxρ = log-frm-apx-refl E apxρ
 
-lemma-2-18-aux-frm ⟪- ρ -⟫ {M} {N} sMN {ρM} {ρN} simρ
+lemma-4-14 ⟪- ρ -⟫ {M} {N} sMN {ρM} {ρN} apxρ
   with sMN {ρM *-Sub ρ} {ρN *-Sub ρ}
-       (λ {σ} v → log-frm-sim-refl (var ρ {σ} v) simρ)
+       (λ {σ} v → log-frm-apx-refl (var ρ {σ} v) apxρ)
 ... | prf rewrite lemma33 ρM ρ M | lemma33 ρN ρ N = prf
 
-lemma-2-18-aux-frm (`val P) {M} {N} sMN {ρM} {ρN} simρ
-  with lemma-2-18-aux-frm P sMN simρ
+lemma-4-14 (`val P) {M} {N} sMN {ρM} {ρN} apxρ
+  with lemma-4-14 P sMN apxρ
 ... | prf = λ sST → sST prf -- This looks dodgy but Agda doesn't like
                             -- introducing sST before the with clause!
 
-lemma-2-18-aux-frm (F `$ A) sMN simρ =
-  log-frm-sim₀^T-app (lemma-2-18-aux-frm F sMN simρ)
-                     (lemma-2-18-aux-frm A sMN simρ)
-lemma-2-18-aux-frm (`if B L R) sMN simρ = log-frm-sim₀^T-if prfB prfL prfR
-  where prfB = lemma-2-18-aux-frm B sMN simρ
-        prfL = lemma-2-18-aux-frm L sMN simρ
-        prfR = lemma-2-18-aux-frm R sMN simρ
-lemma-2-18-aux-frm (`let P Q) {M} {N} sMN {ρM} {ρN} simρ =
-  log-frm-sim₀^T-let (lemma-2-18-aux-frm P sMN simρ) prfQ
+lemma-4-14 (F `$ A) sMN apxρ =
+  log-frm-apx₀^T-app (lemma-4-14 F sMN apxρ)
+                     (lemma-4-14 A sMN apxρ)
+lemma-4-14 (`if B L R) sMN apxρ = log-frm-apx₀^T-if prfB prfL prfR
+  where prfB = lemma-4-14 B sMN apxρ
+        prfL = lemma-4-14 L sMN apxρ
+        prfR = lemma-4-14 R sMN apxρ
+lemma-4-14 (`let P Q) {M} {N} sMN {ρM} {ρN} apxρ =
+  log-frm-apx₀^T-let (lemma-4-14 P sMN apxρ) prfQ
   where
     QM = subst (Q ⟪ M ⟫) (ext₀^Env ρM)
 
     QN = subst (Q ⟪ N ⟫) (ext₀^Env ρN)
 
-    prfQ : ∀ {V W} → log-frm-sim₀ V W →
-      log-frm-sim₀ (QM ⟨ V /var₀⟩) (QN ⟨ W /var₀⟩)
-    prfQ {V} {W} sVW with lemma-2-18-aux-frm Q {M} {N} sMN {ρM `∙ V} {ρN `∙ W}
-                                             (log-frm-sim₀^Ext simρ sVW)
+    prfQ : ∀ {V W} → log-frm-apx₀ V W →
+      log-frm-apx₀ (QM ⟨ V /var₀⟩) (QN ⟨ W /var₀⟩)
+    prfQ {V} {W} sVW with lemma-4-14 Q {M} {N} sMN {ρM `∙ V} {ρN `∙ W}
+                                             (log-frm-apx₀^Ext apxρ sVW)
     ... | prf rewrite lemma34 (Q ⟪ M ⟫) ρM V | lemma34 (Q ⟪ N ⟫) ρN W = prf
 
--- Proof follows James' approach to the letter!
-lemma-2-18O-frm : ∀ {Γ} {τ} {M N} → log-frm-sim M N →
-  cxt-sim {`trm} {Γ} {τ} M N
-lemma-2-18O-frm {Γ} {τ} {M} {N} sMN P
-  with lemma-2-18-aux-frm P {M} {N} sMN ([ log-frm-sim₀^V ]^Env-refl₀ ι^Env)
-... | prf = log-frm-sim-sim₀ {`trm} sPMN
+lemma-4-15O : ∀ {Γ} {τ} {M N} → log-frm-apx M N →
+  vsc-apx {`trm} {Γ} {τ} M N
+lemma-4-15O {Γ} {τ} {M} {N} sMN P
+  with lemma-4-14 P {M} {N} sMN ([ log-frm-apx₀^V ]^Env-refl₀ ι^Env)
+... | prf = log-frm-apx-gnd-eqv₀ {`trm} sPMN
  where
-  sPMN : log-frm-sim₀^T (P ⟪ M ⟫) (P ⟪ N ⟫)
-  sPMN rewrite PEq.sym (ι^Env₀ (P ⟪ M ⟫)) | PEq.sym (ι^Env₀ (P ⟪ N ⟫)) = prf
+  sPMN : log-frm-apx₀^T (P ⟪ M ⟫) (P ⟪ N ⟫)
+  sPMN rewrite ι^Env₀-lemma (mkEnv (λ {σ} → `var)) (P ⟪ M ⟫) |
+               PEq.sym (ι^Env₀ (P ⟪ M ⟫)) |
+               ι^Env₀-lemma (mkEnv (λ {σ} → `var)) (P ⟪ N ⟫) |
+               PEq.sym (ι^Env₀ (P ⟪ N ⟫)) = prf
 
-log-frm-sim₀-lift : ∀ {σ} {V W} → log-frm-sim₀^V {σ} V W →
-                    log-frm-sim₀ (`val V) (`val W)
-log-frm-sim₀-lift {V = V} {W = W} sVW {τ} {S} {T} sST evSV = sST sVW evSV
+log-frm-apx₀-lift : ∀ {σ} {V W} → log-frm-apx₀^V {σ} V W →
+                    log-frm-apx₀ (`val V) (`val W)
+log-frm-apx₀-lift {V = V} {W = W} sVW {τ} {S} {T} sST evSV = sST sVW evSV
 
-Lemma-2-18-frm : (f : CBV) → Set
-Lemma-2-18-frm f = ∀ {τ} {M N} → log-frm-sim₀ M N → cxt-sim₀ {f} {τ} M N
-lemma-2-18-frm : ∀ {f} → Lemma-2-18-frm f
-lemma-2-18-frm {f} = case f return Lemma-2-18-frm of
+Lemma-4-15 : (f : CBV) → Set
+Lemma-4-15 f = ∀ {τ} {M N} → log-frm-apx₀ M N → vsc-apx₀ {f} {τ} M N
+lemma-4-15 : ∀ {f} → Lemma-4-15 f
+lemma-4-15 {f} = case f return Lemma-4-15 of
   λ { `val → prfV ; `trm → prfT }
  where
-  prfV : Lemma-2-18-frm `val
-  prfT : Lemma-2-18-frm `trm
-  prfV {M = V} {N = W} = prfT ∘ log-frm-sim₀-lift
-  prfT = lemma-2-18O-frm ∘ (log-frm-sim₀-log-frm-sim {`trm})
+  prfV : Lemma-4-15 `val
+  prfT : Lemma-4-15 `trm
+  prfV {M = V} {N = W} = prfT ∘ log-frm-apx₀-lift
+  prfT = lemma-4-15O ∘ (log-frm-apx₀-log-frm-apx {`trm})
 
-Lemma-2-20-aux-frm : (f : CBV) → Set
-Lemma-2-20-aux-frm f = ∀ {τ} {M N P} → app-frm-sim₀ M N → log-frm-sim₀ N P →
-                   log-frm-sim₀ {f} {τ} M P
-lemma-2-20-aux-frm : ∀ {f} → Lemma-2-20-aux-frm f
-lemma-2-20-aux-frm {f} = case f return Lemma-2-20-aux-frm of
+Lemma-4-16 : (f : CBV) → Set
+Lemma-4-16 f = ∀ {τ} {M N P} → app-frm-apx₀ M N → log-frm-apx₀ N P →
+                   log-frm-apx₀ {f} {τ} M P
+lemma-4-16 : ∀ {f} → Lemma-4-16 f
+lemma-4-16 {f} = case f return Lemma-4-16 of
   λ { `val →  prfV ; `trm → prfT  }
  where
-  prfV : Lemma-2-20-aux-frm `val
-  prfT : Lemma-2-20-aux-frm `trm
+  prfV : Lemma-4-16 `val
+  prfT : Lemma-4-16 `trm
   prfV {`b β} {`var ()}
-  prfV {`b β} {`b b} (app-frm-sim₀^V-b _) r = r
+  prfV {`b β} {`b b} (app-frm-apx₀^V-b _) r = r
   prfV {σ `→ τ} {`var ()}
   prfV {σ `→ τ} {`λ M} {P = `var ()}
-  prfV {σ `→ τ} {`λ M} {P = `λ P} (app-frm-sim₀^V-λ sMN) r {U} {V} sUV =
+  prfV {σ `→ τ} {`λ M} {P = `λ P} (app-frm-apx₀^V-λ sMN) r {U} {V} sUV =
     prfT (sMN U) (r sUV)
 
   prfT {τ} {M} {N} {P} sMN sNP {σ} {S} sST evSM with sMN evSM
   ... | V , evSN , sUV with sNP sST evSN
-  ... | W , evTP , sVW = W , evTP , sim₀-trans {`val} sUV sVW
+  ... | W , evTP , sVW = W , evTP , gnd-eqv₀-trans {`val} sUV sVW
 
-lemma-2-20-frm : ∀ {f} {τ} {M N} → app-frm-sim₀ M N → log-frm-sim₀ {f} {τ} M N
-lemma-2-20-frm {f} {τ} {M} {N} sMN =
-  lemma-2-20-aux-frm {f} {τ} sMN (log-frm-sim₀-refl N)
+lemma-4-17 : ∀ {f} {τ} {M N} → app-frm-apx₀ M N → log-frm-apx₀ {f} {τ} M N
+lemma-4-17 {f} {τ} {M} {N} sMN =
+  lemma-4-16 {f} {τ} sMN (log-frm-apx₀-refl N)
 
-lemma-2-20O-frm : ∀ {Γ} {τ} {M N : Trm τ Γ} →
-  app-frm-sim M N → log-frm-sim M N
-lemma-2-20O-frm {Γ} {τ} {M} {N} sMN {ρM} {ρN} simρ =
-  lemma-2-20-aux-frm {`trm} (sMN ρM) (log-frm-sim-refl N simρ)
-
-{------------}
-{-- Summary -}
-{------------}
-
--- on open terms
-
-cxt-sim→app-frm-sim^T : ∀ {Γ} {τ} {M N : Trm τ Γ} →
-  cxt-sim M N → app-frm-sim M N
-cxt-sim→app-frm-sim^T = ciu-sim→app-frm-sim ∘ cxt-sim→ciu-sim^T
-
-app-frm-sim→log-frm-sim^T : ∀ {Γ} {τ} {M N : Trm τ Γ} →
-  app-frm-sim M N → log-frm-sim M N
-app-frm-sim→log-frm-sim^T {Γ} {τ} {M} {N} = lemma-2-20O-frm {Γ} {τ} {M} {N}
-
-log-frm-sim→cxt-sim^T : ∀ {Γ} {τ} {M N : Trm τ Γ} →
-  log-frm-sim M N → cxt-sim M N
-log-frm-sim→cxt-sim^T = lemma-2-18O-frm
-
--- on closed terms
-
-cxt-sim₀→app-frm-sim₀^T : ∀ {τ} {M N : Trm₀ τ} →
-  cxt-sim₀ M N → app-frm-sim₀ M N
-cxt-sim₀→app-frm-sim₀^T = ciu-sim₀→app-frm-sim₀ ∘ (cxt-sim→ciu-sim^T {ε})
-
-app-frm-sim₀→log-frm-sim₀^T : ∀ {τ} {M N : Trm₀ τ} →
-  app-frm-sim₀ M N → log-frm-sim₀ M N
-app-frm-sim₀→log-frm-sim₀^T = lemma-2-20-frm {`trm}
-
-log-frm-sim₀→cxt-sim₀^T : ∀ {τ} {M N : Trm₀ τ} →
-  log-frm-sim₀ M N → cxt-sim₀ M N
-log-frm-sim₀→cxt-sim₀^T = lemma-2-18-frm {`trm}
-
+lemma-4-17O : ∀ {Γ} {τ} {M N : Trm τ Γ} →
+  app-frm-apx M N → log-frm-apx M N
+lemma-4-17O {Γ} {τ} {M} {N} sMN {ρM} {ρN} apxρ =
+  lemma-4-16 {`trm} (sMN ρM) (log-frm-apx-refl N apxρ)

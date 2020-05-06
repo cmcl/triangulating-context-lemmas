@@ -1,23 +1,17 @@
-{--------------------------------}
-{-- Properties of frame stacks. -}
-{--------------------------------}
+{-----------------------------------------------------}
+{-- Properties of frame stacks and standardisation. --}
+{-----------------------------------------------------}
 module frm-stk-prop where
 
-open import Data.Product hiding (map)
 open import Function as F hiding (_∋_ ; _$_)
-open import Relation.Binary.PropositionalEquality as PEq using (_≡_)
 
-open import lambda-fg
 open import acmm
-open import sim-fusion-lemmas
 open import relations
 open import big-step-prop
 open import obs-apx
 open import ciu-apx
 
-letF : ∀ {τ σ} (S : Frm τ σ) (M : Trm₀ σ) → Trm₀ τ
-letF   Id    M = M
-letF (S ∙ N) M = letF S (`let M N)
+-- Lemma 4.6 (3)/(4).
 
 ⇓letF-lemma : ∀ {σ τ} (S : Frm τ σ) →
  (∀ {M} {U} → letF S M ⇓ U → ∃ λ V → M ⇓ V × letF S (`val V) ⇓ U)
@@ -89,9 +83,11 @@ letF (S ∙ N) M = letF S (`let M N)
 ↓letV-lemma (⇓let derM derN) =
   ↓letT ∘ (↓letV-lemma derM) ∘ ↓letV ∘ (↓letV-lemma derN)
 
+-- Lemma 4.6(1)
 corollary : ∀ {τ} {M} {V} → M ⇓ V → (Id {τ}) , M ↓ V
 corollary der = ↓letV-lemma der ↓val
 
+-- Lemma 4.6(2)
 corollaryF : ∀ {τ υ} {S : Frm υ τ} {M} {U} → letF S M ⇓ U → S , M ↓ U
 corollaryF {S = S} = (↓letF-unwind-lemma S) ∘ corollary
 
@@ -102,14 +98,17 @@ lemmaF {S = S ∙ N} (↓letV {V = V} der)
  with ⇓letF-lemma S
 ... | prfL , prfR
  with prfL {M = letV V N} (⇓letF-val {S = S} (lemmaF der))
-... | _ , ⇓let _ derN , derU  = prfR (⇓let ⇓val derN) derU
+... | _ , ⇓let (⇓val {V = _}) derN , derU  = prfR (⇓let ⇓val derN) derU
+--  prfR (⇓let (⇓val {V = V}) derN) derU
 lemmaF (↓letT der)             = lemmaF der
 
 ↓standard : ∀ {τ υ} {S : Frm υ τ} {M} {U} → S , M ↓ U →
             ∃ λ V → Id , M ↓ V × S , `val V ↓ U
-↓standard {S = S} der with ⇓letF-lemma S
-... | prfL , prfR with prfL (lemmaF der)
-... | V , derM , derU = V , corollary derM , corollaryF derU
+↓standard {S = S} der with ⇓letF-standard {S = S} (lemmaF der)
+... | V , derM , derV = V , corollary derM , corollaryF derV
+
+
+-- Left action over frame stacks lifted to CIU contexts.
 
 letF-ciu : ∀ {Γ} {τ σ ω} (S : Frm τ σ) (P : CIU⟪ Γ ⊢ ω ⟫ σ ε) →
            CIU⟪ Γ ⊢ ω ⟫ τ ε

@@ -4,17 +4,13 @@
 module vcc-apx where
 
 open import Level as L using (Level ; _⊔_)
-open import Data.Product hiding (map)
-open import Data.List hiding (map ; [_])
 open import Function as F hiding (_∋_ ; _$_)
-open import Relation.Binary.PropositionalEquality as PEq using (_≡_)
 
-open import lambda-fg
 open import acmm
-open import sim-fusion-lemmas
-open import obs-apx
 open import relations
 open import big-step-prop
+open import obs-apx
+open import sim-fusion-lemmas
 
 -- the null weakening/renaming 
 
@@ -37,12 +33,22 @@ cons-rho ρ (su v) = PEq.refl
 ren₀-zero : ∀ {Γ} {τ} → Env₀ (Γ ∙ τ) → Val τ Γ 
 ren₀-zero ρ = Ren₀ *-Var zero ρ 
 
+sub₀-zero : ∀ {Γ} {τ} → Env₀ (Γ ∙ τ) → Γ ∙ τ ⊨ Γ
+sub₀-zero ρ = ι^Env `∙ ren₀-zero ρ
+
 zero* : ∀ {Γ} {σ τ} → Env₀ (Γ ∙ τ) → Trm σ (Γ ∙ τ) → Trm σ Γ 
-zero* ρ M =  M ⟨ ren₀-zero ρ /var₀⟩ 
+zero* ρ M =  M ⟨ ren₀-zero ρ /var₀⟩
+
+succ-ren₀-zero : ∀ {Γ} {τ} (ρ : Env₀ (Γ ∙ τ)) →
+                 ((succ ρ) *-Val (ren₀-zero ρ)) ≡ zero ρ
+succ-ren₀-zero ρ = ι^Var^Env-lemma-aux (zero ρ) Ren₀ (succ ρ) (λ ())
 
 subst-succ : ∀ {Γ} {σ τ} → (ρ : Env₀ (Γ ∙ τ)) → (M : Trm σ (Γ ∙ τ)) →
   subst (zero* ρ M) (succ ρ) ≡ subst M (succ ρ `∙ zero ρ)
-subst-succ ρ M = PEq.sym (lemma33 (succ ρ) (ι^Env  `∙ (ren₀-zero ρ)) M)
+subst-succ ρ M rewrite sub-sub (succ ρ) (ι^Env  `∙ (ren₀-zero ρ)) M =
+  subst-ext M [ P ][ succ-ren₀-zero ρ ,,, (λ v → PEq.refl) ]
+  where P = λ {τ} v →
+          var (succ ρ *-Sub (sub₀-zero ρ)) v ≡ var (succ ρ `∙ zero ρ) {τ} v
 
 -- iterated sequential substitution 'subst₀'
 
@@ -122,11 +128,13 @@ lemma-2-10ii-$ r red der with r der
 βV-subst₀ : ∀ {Γ} {σ} → (ρ : Env₀ Γ) → (M : Trm σ Γ) → βVΓ ρ M →βV subst M ρ
 βV-subst₀   {ε}   ρ M rewrite ι^Env₀-lemma ρ M = →βV-refl
 βV-subst₀ {Γ ∙ τ} ρ M with βV-subst₀ (succ ρ) (βV M (ren₀-zero ρ))
-... | ih rewrite PEq.sym (subst-equiv ρ M) with →βV-step ih
-... | prf rewrite subst-equiv (succ ρ) (zero* ρ M) | subst-succ ρ M |
-                  lemma34 M (succ ρ) (zero ρ) = prf
+... | ih rewrite PEq.sym (subst-equiv ρ M) | succ-ren₀-zero ρ |
+                 subst-equiv (succ ρ) (zero* ρ M) |
+                 subst-succ ρ M
+         with →βV-step ih
+... | prf rewrite PEq.sym (lemma34 M (succ ρ) (zero ρ)) = prf
 
--- variable-capturing contexts; no additional renaming/substitution in holes
+-- VCC contexts; no additional renaming/substitution in holes
 
 infixr 20 VCC⟪_⊢_⟫
 
@@ -210,30 +218,24 @@ _⟪∘_⟫VCC_ : ∀ {f} {Γ Δ Ξ} {σ τ υ} (P : VCC⟪ Δ ⊢ σ ⟫ {f} τ
   rewrite B ⟪∘ T ⟫VCC Q | L ⟪∘ T ⟫VCC Q | R ⟪∘ T ⟫VCC Q = PEq.refl
 `let P R  ⟪∘ T ⟫VCC Q rewrite P ⟪∘ T ⟫VCC Q | R ⟪∘ T ⟫VCC Q = PEq.refl
 
--- commutation between substitution and instantiation
+-- K-approximation wrt K = VCC
 
--- _substVCC⟪_⟫_ : ∀ {f} {τ υ} {Γ Δ Ξ}
---                 (P : VCC⟪ Γ ⊢ τ ⟫ {f} υ ε) (T : Trm τ Γ) (ρ : Env₀ Γ) →
---  subst (Ren₀ *-Var P ⟪ T ⟫VCC) ρ ≡ P ⟪ subst T ρ ⟫VCC
--- P substVCC⟪ T ⟫ ρ = ?
-
--- Observational simulation wrt VCCs
-
-vcc-sim : ∀ {f} {Γ} {υ} → Rel^E {f} {L.zero} {Γ} {υ}
-vcc-sim {f} = case f return (λ f → ∀ {Γ} {υ} → Rel^E {f} {_} {Γ} {υ})
- of λ { `val → simV ; `trm → simT }
+vcc-apx : ∀ {f} {Γ} {υ} → Rel^E {f} {L.zero} {Γ} {υ}
+vcc-apx {f} = case f return (λ f → ∀ {Γ} {υ} → Rel^E {f} {_} {Γ} {υ})
+ of λ { `val → apxV ; `trm → apxT }
  where
-  simV : ∀ {Γ} {τ} → Rel^V {_} {Γ} {τ}
-  simT : ∀ {Γ} {τ} → Rel^T {_} {Γ} {τ}
-  simV {Γ} {τ}     = _[ simT {Γ} {τ} ]^V_
-  simT {Γ} {τ} M N =
-    {υ : Ty} (P : VCC⟪ Γ ⊢ τ ⟫ υ ε) → sim₀ {`trm} (P ⟪ M ⟫VCC) (P ⟪ N ⟫VCC)
+  apxV : ∀ {Γ} {τ} → Rel^V {_} {Γ} {τ}
+  apxT : ∀ {Γ} {τ} → Rel^T {_} {Γ} {τ}
+  apxV {Γ} {τ}     = _[ apxT {Γ} {τ} ]^V_
+  apxT {Γ} {τ} M N =
+    {υ : Ty} (P : VCC⟪ Γ ⊢ τ ⟫ υ ε) →
+    gnd-eqv₀ {`trm} (P ⟪ M ⟫VCC) (P ⟪ N ⟫VCC)
 
--- open simulation follows trivially: use the obvious context, 
+-- open ground equivalence follows trivially: use the obvious context, 
 -- the substitution instance of the hole itself!
 
-vcc-sim→sim^T : ∀ {Γ} {τ} {M N} → vcc-sim M N → sim {`trm} {Γ} {τ} M N
-vcc-sim→sim^T {Γ} {τ} {M} {N} sMN ρ = sim-subst
+vcc-apx→gnd-eqv^T : ∀ {Γ} {τ} {M N} → vcc-apx M N → gnd-eqv {`trm} {Γ} {τ} M N
+vcc-apx→gnd-eqv^T {Γ} {τ} {M} {N} sMN ρ = gnd-eqv-subst
   where P : VCC⟪ Γ ⊢ τ ⟫ τ ε
         P = VCC-sub ρ ⟪-⟫ 
 
@@ -241,48 +243,48 @@ vcc-sim→sim^T {Γ} {τ} {M} {N} sMN ρ = sim-subst
         βV-subst M rewrite VCC-sub-βV ρ ⟪-⟫ M with βV-subst₀ ρ M 
         ... | prf rewrite subst-equiv ρ M = prf 
 
-        sim-subst : sim₀ {`trm} (subst M ρ) (subst N ρ)
-        sim-subst = lemma-2-10i-βV (βV-subst M)
+        gnd-eqv-subst : gnd-eqv₀ {`trm} (subst M ρ) (subst N ρ)
+        gnd-eqv-subst = lemma-2-10i-βV (βV-subst M)
                                    (lemma-2-10ii-βV (sMN P) (βV-subst N))
 
-vcc-sim₀ : GRel₀^E
-vcc-sim₀ {f} = case f return (λ f → ∀ {υ} → Rel^E {f} {_} {ε} {υ})
- of λ { `val → simV ; `trm → simT }
+vcc-apx₀ : GRel₀^E
+vcc-apx₀ {f} = case f return (λ f → ∀ {υ} → Rel^E {f} {_} {ε} {υ})
+ of λ { `val → apxV ; `trm → apxT }
  where
-  simV : GRel₀^V
-  simT : GRel₀^T
-  simV {τ} = _[ simT {τ} ]^V_
-  simT     = vcc-sim {`trm} {ε}
+  apxV : GRel₀^V
+  apxT : GRel₀^T
+  apxV {τ} = _[ apxT {τ} ]^V_
+  apxT     = vcc-apx {`trm} {ε}
 
--- Convert an VCC to a VSC
+-- Convert an VCC to a VSC: the star in the paper
 
-vcc-to-cxt : ∀ {f} {Γ Δ} {σ τ} → VCC⟪ Γ ⊢ σ ⟫ {f} τ Δ → Cxt⟪ Γ ⊢ σ ⟫ {f} τ Δ
-vcc-to-cxt (`λ M) = `λ (vcc-to-cxt M)
-vcc-to-cxt (`exp E) = `exp E
-vcc-to-cxt ⟪-⟫ = ⟪- ι^Env -⟫
-vcc-to-cxt (`val P) = `val (vcc-to-cxt P)
-vcc-to-cxt (F `$ A) = (vcc-to-cxt F) `$ (vcc-to-cxt A)
-vcc-to-cxt (`if B L R) = `if (vcc-to-cxt B) (vcc-to-cxt L) (vcc-to-cxt R)
-vcc-to-cxt (`let P Q) = `let (vcc-to-cxt P) (vcc-to-cxt Q)
+vcc-to-vsc : ∀ {f} {Γ Δ} {σ τ} → VCC⟪ Γ ⊢ σ ⟫ {f} τ Δ → VSC⟪ Γ ⊢ σ ⟫ {f} τ Δ
+vcc-to-vsc (`λ M) = `λ (vcc-to-vsc M)
+vcc-to-vsc (`exp E) = `exp E
+vcc-to-vsc ⟪-⟫ = ⟪- ι^Env -⟫
+vcc-to-vsc (`val P) = `val (vcc-to-vsc P)
+vcc-to-vsc (F `$ A) = (vcc-to-vsc F) `$ (vcc-to-vsc A)
+vcc-to-vsc (`if B L R) = `if (vcc-to-vsc B) (vcc-to-vsc L) (vcc-to-vsc R)
+vcc-to-vsc (`let P Q) = `let (vcc-to-vsc P) (vcc-to-vsc Q)
 
-vcc→cxt⟪_⟫ : ∀ {f} {Γ Δ} {σ τ} →
+vcc→vsc⟪_⟫ : ∀ {f} {Γ Δ} {σ τ} →
   (M : Trm σ Γ) → (P : VCC⟪ Γ ⊢ σ ⟫ {f} τ Δ) →
-  (vcc-to-cxt P) ⟪ M ⟫ ≡ P ⟪ M ⟫VCC
-vcc→cxt⟪ M ⟫ (`λ P) rewrite vcc→cxt⟪ M ⟫ P = PEq.refl
-vcc→cxt⟪ M ⟫ (`exp E) = PEq.refl
-vcc→cxt⟪ M ⟫ ⟪-⟫ = ι^Env-lemma M
-vcc→cxt⟪ M ⟫ (`val P) rewrite vcc→cxt⟪ M ⟫ P = PEq.refl
-vcc→cxt⟪ M ⟫ (F `$ A) rewrite vcc→cxt⟪ M ⟫ F | vcc→cxt⟪ M ⟫ A = PEq.refl
-vcc→cxt⟪ M ⟫ (`if B L R)
-  rewrite vcc→cxt⟪ M ⟫ B | vcc→cxt⟪ M ⟫ L | vcc→cxt⟪ M ⟫ R = PEq.refl
-vcc→cxt⟪ M ⟫ (`let P Q) rewrite vcc→cxt⟪ M ⟫ P | vcc→cxt⟪ M ⟫ Q = PEq.refl
+  (vcc-to-vsc P) ⟪ M ⟫ ≡ P ⟪ M ⟫VCC
+vcc→vsc⟪ M ⟫ (`λ P) rewrite vcc→vsc⟪ M ⟫ P = PEq.refl
+vcc→vsc⟪ M ⟫ (`exp E) = PEq.refl
+vcc→vsc⟪ M ⟫ ⟪-⟫ = ι^Env-lemma M
+vcc→vsc⟪ M ⟫ (`val P) rewrite vcc→vsc⟪ M ⟫ P = PEq.refl
+vcc→vsc⟪ M ⟫ (F `$ A) rewrite vcc→vsc⟪ M ⟫ F | vcc→vsc⟪ M ⟫ A = PEq.refl
+vcc→vsc⟪ M ⟫ (`if B L R)
+  rewrite vcc→vsc⟪ M ⟫ B | vcc→vsc⟪ M ⟫ L | vcc→vsc⟪ M ⟫ R = PEq.refl
+vcc→vsc⟪ M ⟫ (`let P Q) rewrite vcc→vsc⟪ M ⟫ P | vcc→vsc⟪ M ⟫ Q = PEq.refl
 
 -- VCCs are contained within VSCs
 
-cxt-sim→vcc-sim^T :
-  ∀ {Γ} {τ} {M N} → cxt-sim M N → vcc-sim {`trm} {Γ} {τ} M N
-cxt-sim→vcc-sim^T {Γ} {τ} {M} {N} sMN P with sMN (vcc-to-cxt P)
-... | hyp rewrite vcc→cxt⟪ M ⟫ P | vcc→cxt⟪ N ⟫ P = hyp
+vsc-apx→vcc-apx^T :
+  ∀ {Γ} {τ} {M N} → vsc-apx M N → vcc-apx {`trm} {Γ} {τ} M N
+vsc-apx→vcc-apx^T {Γ} {τ} {M} {N} sMN P with sMN (vcc-to-vsc P)
+... | hyp rewrite vcc→vsc⟪ M ⟫ P | vcc→vsc⟪ N ⟫ P = hyp
 
-cxt-sim₀→vcc-sim₀^T : ∀ {τ} {M N : Trm₀ τ} → cxt-sim₀ M N → vcc-sim₀ M N
-cxt-sim₀→vcc-sim₀^T = cxt-sim→vcc-sim^T {ε}
+vsc-apx₀→vcc-apx₀^T : ∀ {τ} {M N : Trm₀ τ} → vsc-apx₀ M N → vcc-apx₀ M N
+vsc-apx₀→vcc-apx₀^T = vsc-apx→vcc-apx^T {ε}

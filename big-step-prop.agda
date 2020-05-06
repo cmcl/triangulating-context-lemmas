@@ -4,12 +4,8 @@
 module big-step-prop where
 
 open import Level as L using (Level ; _⊔_)
-open import Data.Bool renaming (true to tt ; false to ff)
-open import Data.Product hiding (map)
 open import Function as F hiding (_∋_ ; _$_)
-open import Relation.Binary.PropositionalEquality as PEq using (_≡_)
 
-open import lambda-fg
 open import acmm
 open import relations
 open import sim-fusion-lemmas
@@ -28,10 +24,6 @@ lemma-2-3i : {τ : Ty} {M N : Trm₀ τ} {V : Val₀ τ} →
 lemma-2-3i (⇓if-tt dev)      →₁if         = dev
 lemma-2-3i (⇓if-ff dev)      →₁if         = dev
 lemma-2-3i (⇓app dev)        →₁app        = dev
-{-
-lemma-2-3i (⇓let (⇓val) dev) →₁letV = dev
-lemma-2-3i (⇓let devM devN) (→₁letT redM) = ⇓let (lemma-2-3i devM redM) devN
--}
 
 →₁letTi : {σ τ : Ty} {N : (σ ⊢ Trm τ) _} {M M' : _} {V : Val₀ _} →
           (der : `let M N ⇓ V) → (red : M →₁ M') → `let M' N ⇓ V
@@ -44,10 +36,6 @@ lemma-2-3ii : {τ : Ty} {M N : Trm₀ τ} {V : Val₀ τ} →
 lemma-2-3ii (→₁if {b = tt}) = ⇓if-tt
 lemma-2-3ii (→₁if {b = ff}) = ⇓if-ff
 lemma-2-3ii →₁app           = ⇓app
-{-
-lemma-2-3ii dev →₁letV          = ⇓let ⇓val dev
-lemma-2-3ii (⇓let devM devN) (→₁letT redM) = ⇓let (lemma-2-3ii devM redM) devN
--}
 
 →₁letTii : {σ τ : Ty} {N : (σ ⊢ Trm τ) _} {M M' : _} {V : Val₀ _} →
            (red : M →₁ M') → (der : `let M' N ⇓ V) → `let M N ⇓ V
@@ -100,10 +88,12 @@ lemma-[-]^T-βV : {ℓ^V : Level} {τ : Ty} {R : GRel^V {ℓ^V} {τ}} →
  ∀ {σ} {P Q : Trm₀ (σ `→ τ)} {M N} {V W} →
  P ⇓ `λ M → appT P V [ R ]^T appT Q W → Q ⇓ `λ N →
  (βV M V) [ R ]^T (βV N W)
-lemma-[-]^T-βV derM r derN (⇓app derV)
- with r (⇓let derM (⇓app derV))
-... | U , ⇓let derQ (⇓app derU) , simU
- rewrite `λ-inj (lemma-2-1 derN derQ) = U , ⇓app derU , simU
+lemma-[-]^T-βV {M = M} {V = V} {W = W} derM r derN {U} (⇓app derV)
+   with (λ der → r {U} (⇓let derM (⇓app der)))
+... | hyp rewrite weak-sub (`λ M) V with hyp derV
+... | _ , ⇓let derQ (⇓app {M = Q} derU) , simU
+  rewrite weak-sub (`λ Q) W | `λ-inj (lemma-2-1 derN derQ) =
+  _ , ⇓app derU , simU
 
 -- congruence rules
 
